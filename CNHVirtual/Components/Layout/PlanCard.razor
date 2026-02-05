@@ -1,0 +1,213 @@
+@inject NavigationManager Navigation
+
+<div class="plan-card @(Plan.Destaque ? "featured" : "")">
+    @if (Plan.Destaque)
+    {
+        <div class="plan-badge">⭐ MAIS POPULAR</div>
+    }
+
+    <div class="plan-header">
+        <h3 class="plan-name">@Plan.Nome</h3>
+        <p class="plan-description">@Plan.DescricaoCurta</p>
+
+        @if (Plan.PrecoPromocional.HasValue && Plan.PrecoPromocional < Plan.Preco)
+        {
+            <p style="text-decoration: line-through; color: #a0aec0; font-size: 1.125rem;">
+                R$ @Plan.Preco.ToString("F2")
+            </p>
+        }
+
+        <div class="plan-price">
+            R$ @((Plan.PrecoPromocional ?? Plan.Preco).ToString("F2"))
+        </div>
+        <p class="plan-price-note">à vista ou em até 12x</p>
+
+        <p class="plan-price-note" style="margin-top: 1rem;">
+            @if (Plan.DuracaoDias >= 3650)
+            {
+                <span>🔓 Acesso vitalício</span>
+            }
+            else
+            {
+                <span>⏱️ Acesso por @Plan.DuracaoDias dias</span>
+            }
+        </p>
+    </div>
+
+    <ul class="plan-features">
+        @foreach (var recurso in Plan.Recursos)
+        {
+            <li>
+                <span class="feature-icon" style="color: @(recurso.Incluido ? "var(--success)" : "var(--danger)");">
+                    @(recurso.Incluido ? "✓" : "✗")
+                </span>
+                <span>@recurso.Descricao</span>
+            </li>
+        }
+    </ul>
+
+    <button
+        class="btn btn-primary"
+        style="width: 100%; @(Plan.Destaque ? "" : "background: #edf2f7; color: #2d3748;")"
+        @onclick="GoToCheckout">
+        Começar Agora
+    </button>
+</div>
+
+@code {
+    [Parameter]
+    public PlansSection.Plan Plan { get; set; } = new();
+
+    private void GoToCheckout()
+    {
+        Navigation.NavigateTo($"/checkout?plano={Plan.Id}");
+    }
+}
+
+<style>
+    .plan-card {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 2.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        position: relative;
+        border: 2px solid transparent;
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    .plan-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .plan-card.featured {
+        border-color: #0081f2;
+        background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%);
+        transform: scale(1.05);
+    }
+
+    .plan-card.featured:hover {
+        transform: translateY(-8px) scale(1.05);
+    }
+
+    .plan-badge {
+        position: absolute;
+        top: -12px;
+        right: 2rem;
+        background: linear-gradient(135deg, #0081f2, #0066c2);
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 2rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        box-shadow: 0 4px 14px rgba(0, 129, 242, 0.4);
+    }
+
+    .plan-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 2rem;
+    }
+
+    .plan-name {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 0.5rem;
+    }
+
+    .plan-description {
+        font-size: 1rem;
+        color: #718096;
+        margin-bottom: 1.5rem;
+    }
+
+    .plan-price {
+        font-size: 3.5rem;
+        font-weight: 800;
+        color: #0081f2;
+        margin-bottom: 0.5rem;
+    }
+
+    .plan-price-note {
+        font-size: 0.9rem;
+        color: #a0aec0;
+    }
+
+    .plan-features {
+        list-style: none;
+        padding: 0;
+        margin: 2rem 0;
+    }
+
+    .plan-features li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem 0;
+        font-size: 1rem;
+        color: #4a5568;
+    }
+
+    .feature-icon {
+        font-size: 1.25rem;
+        font-weight: bold;
+        min-width: 24px;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 1rem 2rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+        font-size: 1.1rem;
+    }
+
+    .btn-primary {
+        background: #0081f2;
+        color: white;
+        box-shadow: 0 4px 14px rgba(0, 129, 242, 0.4);
+    }
+
+    .btn-primary:hover {
+        background: #0066c2;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 129, 242, 0.5);
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .plan-card {
+            padding: 1.5rem;
+        }
+
+        .plan-card.featured {
+            transform: scale(1);
+        }
+
+        .plan-price {
+            font-size: 2.5rem;
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+        }
+    }
+</style>

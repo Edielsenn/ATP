@@ -1,0 +1,44 @@
+<section id="como-funciona" style="background: white;">
+    <div class="container">
+        <h2 class="section-title">
+            Como <span style="color: var(--primary);">Funciona</span>?
+        </h2>
+        <p class="section-subtitle">
+            Seu caminho para a aprovação em 6 passos simples
+        </p>
+
+        <div class="cards-grid">
+            @foreach (var step in steps)
+            {
+                <div class="card" style="background: linear-gradient(135deg, #ebf8ff 0%, #ffffff 100%); position: relative;">
+                    <div style="position: absolute; top: -1rem; left: -1rem; width: 3rem; height: 3rem; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.25rem; box-shadow: 0 4px 6px rgba(0, 129, 242, 0.4);">
+                        @step.Number
+                    </div>
+                    <div class="card-icon" style="margin-top: 1rem;">@step.Icon</div>
+                    <h3>@step.Title</h3>
+                    <p>@step.Description</p>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<Step> steps = new()
+    {
+        new Step { Number = 1, Title = "Escolha seu Plano", Description = "Selecione o plano que melhor se adapta às suas necessidades e orçamento", Icon = "🎯" },
+        new Step { Number = 2, Title = "Faça o Pagamento", Description = "Pague com segurança via boleto, cartão de crédito ou PIX", Icon = "💳" },
+        new Step { Number = 3, Title = "Acesse a Plataforma", Description = "Receba acesso imediato a todo o conteúdo do curso", Icon = "📱" },
+        new Step { Number = 4, Title = "Estude e Pratique", Description = "Aprenda no seu ritmo com videoaulas e simulados", Icon = "📚" },
+        new Step { Number = 5, Title = "Faça o Exame", Description = "Marque seu exame no DETRAN com confiança", Icon = "✍️" },
+        new Step { Number = 6, Title = "Conquiste sua CNH", Description = "Seja aprovado e realize seu sonho de dirigir", Icon = "🎉" }
+    };
+
+    private class Step
+    {
+        public int Number { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Icon { get; set; } = "";
+    }
+}

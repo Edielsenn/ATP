@@ -1,0 +1,147 @@
+@inject IJSRuntime JS
+
+<header class="header @(isScrolled ? "scrolled" : "")" id="main-header">
+    <nav class="container">
+        <a href="/" class="logo">
+            <img src="/icon.png" alt="CNH Virtual" class="logo-icon" />
+            <span class="logo-text">CNH Virtual</span>
+        </a>
+
+        <ul class="nav-links">
+            <li><a href="#cursos">Cursos</a></li>
+            <li><a href="#como-funciona">Como Funciona</a></li>
+            <li><a href="#depoimentos">Depoimentos</a></li>
+            <li><a href="#faq">FAQ</a></li>
+        </ul>
+
+        <a href="#cursos" class="btn btn-primary">
+            Começar Agora
+        </a>
+    </nav>
+</header>
+
+@code {
+    private bool isScrolled = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("eval", @"
+                window.addEventListener('scroll', function() {
+                    var header = document.getElementById('main-header');
+                    if (window.scrollY > 50) {
+                        if (!header.classList.contains('scrolled')) {
+                            header.classList.add('scrolled');
+                        }
+                    } else {
+                        header.classList.remove('scrolled');
+                    }
+                });
+            ");
+        }
+    }
+}
+
+<style>
+    .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        transition: all 0.3s ease;
+        padding: 1.5rem 0;
+        background: transparent;
+    }
+
+    .header.scrolled {
+        background: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 1rem 0;
+    }
+
+    .header nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .logo-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .logo-text {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2d3748;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 2rem;
+        list-style: none;
+        align-items: center;
+    }
+
+    .nav-links a {
+        color: #4a5568;
+        text-decoration: none;
+        transition: color 0.3s;
+        font-weight: 500;
+    }
+
+    .nav-links a:hover {
+        color: #0081f2;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background: #0081f2;
+        color: white;
+        box-shadow: 0 4px 14px rgba(0, 129, 242, 0.4);
+    }
+
+    .btn-primary:hover {
+        background: #0066c2;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 129, 242, 0.5);
+    }
+
+    @@media (max-width: 768px) {
+        .nav-links {
+            display: none;
+        }
+
+        .header nav {
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+    }
+</style>

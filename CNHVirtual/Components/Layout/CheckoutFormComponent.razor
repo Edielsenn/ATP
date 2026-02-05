@@ -1,0 +1,252 @@
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject IConfiguration Configuration
+
+<div class="card">
+    <EditForm Model="@request" OnValidSubmit="@ProcessarPagamento">
+        @* Dados Pessoais *@
+        <div style="margin-bottom: 2rem;">
+            <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem;">Dados Pessoais</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div style="grid-column: span 2;">
+                    <input @bind="request.Cliente.Nome" placeholder="Nome completo *" required
+                           style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                </div>
+                <input @bind="request.Cliente.Email" type="email" placeholder="Email *" required
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                <input @bind="request.Cliente.CPF" placeholder="CPF *" required maxlength="14"
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                <input @bind="request.Cliente.Telefone" placeholder="Telefone *" required
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+            </div>
+        </div>
+
+        @* Endereço *@
+        <div style="margin-bottom: 2rem;">
+            <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem;">Endereço</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <input @bind="request.Cliente.CEP" placeholder="CEP *" required maxlength="9"
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                <input @bind="request.Cliente.Endereco" placeholder="Endereço *" required
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                <input @bind="request.Cliente.Numero" placeholder="Número *" required
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                <input @bind="request.Cliente.Complemento" placeholder="Complemento"
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                <input @bind="request.Cliente.Bairro" placeholder="Bairro *" required
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                <input @bind="request.Cliente.Cidade" placeholder="Cidade *" required
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                <select @bind="request.Cliente.Estado" required
+                        style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;">
+                    <option value="">Selecione o Estado *</option>
+                    <option value="AC">Acre</option>
+                    <option value="AL">Alagoas</option>
+                    <option value="AP">Amapá</option>
+                    <option value="AM">Amazonas</option>
+                    <option value="BA">Bahia</option>
+                    <option value="CE">Ceará</option>
+                    <option value="DF">Distrito Federal</option>
+                    <option value="ES">Espírito Santo</option>
+                    <option value="GO">Goiás</option>
+                    <option value="MA">Maranhão</option>
+                    <option value="MT">Mato Grosso</option>
+                    <option value="MS">Mato Grosso do Sul</option>
+                    <option value="MG">Minas Gerais</option>
+                    <option value="PA">Pará</option>
+                    <option value="PB">Paraíba</option>
+                    <option value="PR">Paraná</option>
+                    <option value="PE">Pernambuco</option>
+                    <option value="PI">Piauí</option>
+                    <option value="RJ">Rio de Janeiro</option>
+                    <option value="RN">Rio Grande do Norte</option>
+                    <option value="RS">Rio Grande do Sul</option>
+                    <option value="RO">Rondônia</option>
+                    <option value="RR">Roraima</option>
+                    <option value="SC">Santa Catarina</option>
+                    <option value="SP">São Paulo</option>
+                    <option value="SE">Sergipe</option>
+                    <option value="TO">Tocantins</option>
+                </select>
+            </div>
+        </div>
+
+        @* Forma de Pagamento *@
+        <div style="margin-bottom: 2rem;">
+            <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem;">Forma de Pagamento</h3>
+            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                <button type="button"
+                        @onclick='() => request.FormaPagamento = "CREDIT_CARD"'
+                        style="flex: 1; padding: 1rem; border-radius: 0.5rem; font-weight: 600; border: 2px solid; transition: all 0.3s;
+                               background: @(request.FormaPagamento == "CREDIT_CARD" ? "var(--primary)" : "white");
+                               color: @(request.FormaPagamento == "CREDIT_CARD" ? "white" : "#2d3748");
+                               border-color: @(request.FormaPagamento == "CREDIT_CARD" ? "var(--primary)" : "#cbd5e0");">
+                    💳 Cartão de Crédito
+                </button>
+                <button type="button"
+                        @onclick='() => request.FormaPagamento = "BOLETO"'
+                        style="flex: 1; padding: 1rem; border-radius: 0.5rem; font-weight: 600; border: 2px solid; transition: all 0.3s;
+                               background: @(request.FormaPagamento == "BOLETO" ? "var(--primary)" : "white");
+                               color: @(request.FormaPagamento == "BOLETO" ? "white" : "#2d3748");
+                               border-color: @(request.FormaPagamento == "BOLETO" ? "var(--primary)" : "#cbd5e0");">
+                    🏦 Boleto Bancário
+                </button>
+            </div>
+
+            @if (request.FormaPagamento == "CREDIT_CARD")
+            {
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div style="grid-column: span 2;">
+                        <input @bind="request.Cartao.HolderName" placeholder="Nome no cartão *" required
+                               style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <input @bind="request.Cartao.Number" placeholder="Número do cartão *" required maxlength="19"
+                               style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                    </div>
+                    <input @bind="request.Cartao.ExpiryMonth" placeholder="Mês (MM) *" required maxlength="2"
+                           style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                    <input @bind="request.Cartao.ExpiryYear" placeholder="Ano (AAAA) *" required maxlength="4"
+                           style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                    <input @bind="request.Cartao.Ccv" placeholder="CVV *" required maxlength="4"
+                           style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
+                </div>
+            }
+            else if (request.FormaPagamento == "BOLETO")
+            {
+                <div style="background: #fffbeb; border: 1px solid #fbbf24; border-radius: 0.5rem; padding: 1rem;">
+                    <p style="font-size: 0.875rem; color: #92400e;">
+                        ⚠️ O boleto será gerado após a confirmação do pedido. O prazo de compensação é de 1 a 3 dias úteis.
+                    </p>
+                </div>
+            }
+        </div>
+
+        @* Mensagens de Erro/Sucesso *@
+        @if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <div style="background: #fee2e2; border: 1px solid #ef4444; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
+                <p style="color: #991b1b; font-weight: 600;">❌ @mensagemErro</p>
+            </div>
+        }
+
+        @* Botão de Finalizar *@
+        <button type="submit" disabled="@isProcessing" class="btn btn-primary"
+                style="width: 100%; font-size: 1.125rem; opacity: @(isProcessing ? "0.5" : "1"); cursor: @(isProcessing ? "not-allowed" : "pointer");">
+            @if (isProcessing)
+            {
+                <span>Processando...</span>
+            }
+            else
+            {
+                <span>Finalizar Compra - R$ @((Plano.PrecoPromocional ?? Plano.Preco).ToString("F2"))</span>
+            }
+        </button>
+
+        <p style="text-align: center; font-size: 0.875rem; color: #718096; margin-top: 1rem;">
+            Ao finalizar a compra, você concorda com nossos
+            <a href="/termos" style="color: var(--primary); text-decoration: underline;">Termos de Uso</a> e
+            <a href="/privacidade" style="color: var(--primary); text-decoration: underline;">Política de Privacidade</a>
+        </p>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int PlanoId { get; set; }
+
+    [Parameter]
+    public dynamic Plano { get; set; } = null!;
+
+    private PagamentoRequest request = new();
+    private bool isProcessing = false;
+    private string? mensagemErro;
+
+    protected override void OnInitialized()
+    {
+        request.PlanoId = PlanoId;
+        request.FormaPagamento = "CREDIT_CARD";
+    }
+
+    private async Task ProcessarPagamento()
+    {
+        isProcessing = true;
+        mensagemErro = null;
+
+        try
+        {
+            var apiUrl = Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5273";
+            var response = await Http.PostAsJsonAsync($"{apiUrl}/api/pagamentos/processar", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var resultado = await response.Content.ReadFromJsonAsync<PagamentoResponse>();
+
+                if (resultado != null)
+                {
+                    if (request.FormaPagamento == "BOLETO")
+                    {
+                        Navigation.NavigateTo($"/pagamento/boleto?id={resultado.PagamentoId}");
+                    }
+                    else
+                    {
+                        Navigation.NavigateTo($"/pagamento/sucesso?id={resultado.PagamentoId}");
+                    }
+                }
+            }
+            else
+            {
+                mensagemErro = "Erro ao processar pagamento. Por favor, verifique os dados e tente novamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao processar pagamento: {ex.Message}");
+            mensagemErro = "Erro ao processar pagamento. Por favor, tente novamente.";
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    public class PagamentoRequest
+    {
+        public int PlanoId { get; set; }
+        public ClienteDto Cliente { get; set; } = new();
+        public string FormaPagamento { get; set; } = "";
+        public CartaoDto Cartao { get; set; } = new();
+    }
+
+    public class ClienteDto
+    {
+        public string Nome { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string CPF { get; set; } = "";
+        public string Telefone { get; set; } = "";
+        public string CEP { get; set; } = "";
+        public string Endereco { get; set; } = "";
+        public string Numero { get; set; } = "";
+        public string? Complemento { get; set; }
+        public string Bairro { get; set; } = "";
+        public string Cidade { get; set; } = "";
+        public string Estado { get; set; } = "";
+    }
+
+    public class CartaoDto
+    {
+        public string HolderName { get; set; } = "";
+        public string Number { get; set; } = "";
+        public string ExpiryMonth { get; set; } = "";
+        public string ExpiryYear { get; set; } = "";
+        public string Ccv { get; set; } = "";
+    }
+
+    public class PagamentoResponse
+    {
+        public int PagamentoId { get; set; }
+        public string Status { get; set; } = "";
+        public string Mensagem { get; set; } = "";
+    }
+}

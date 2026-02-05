@@ -1,0 +1,53 @@
+<section id="depoimentos" style="background: #f7fafc;">
+    <div class="container">
+        <h2 class="section-title">
+            O que nossos <span style="color: var(--primary);">alunos dizem</span>
+        </h2>
+        <p class="section-subtitle">
+            Mais de 50 mil alunos aprovados e realizando seus sonhos
+        </p>
+
+        <div class="cards-grid">
+            @foreach (var testimonial in testimonials)
+            {
+                <div class="card">
+                    <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                        <div style="font-size: 2.5rem; margin-right: 1rem;">@testimonial.Avatar</div>
+                        <div>
+                            <h4 style="font-weight: bold; color: #2d3748;">@testimonial.Name</h4>
+                            <p style="font-size: 0.875rem; color: #718096;">@testimonial.City</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; margin-bottom: 1rem;">
+                        @for (int i = 0; i < testimonial.Rating; i++)
+                        {
+                            <span style="color: #ecc94b; font-size: 1.25rem;">★</span>
+                        }
+                    </div>
+                    <p style="color: #4a5568; font-style: italic;">"@testimonial.Text"</p>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<Testimonial> testimonials = new()
+    {
+        new Testimonial { Name = "Maria Silva", City = "São Paulo, SP", Text = "Passei de primeira graças ao CNH Virtual! O material é excelente e os simulados são muito parecidos com a prova real.", Rating = 5, Avatar = "👩" },
+        new Testimonial { Name = "João Santos", City = "Rio de Janeiro, RJ", Text = "Melhor investimento que fiz! Estudei pelo celular no ônibus e consegui passar em apenas 3 semanas.", Rating = 5, Avatar = "👨" },
+        new Testimonial { Name = "Ana Costa", City = "Belo Horizonte, MG", Text = "Eu estava muito nervosa, mas o curso me deixou super preparada. Recomendo demais!", Rating = 5, Avatar = "👩‍🦱" },
+        new Testimonial { Name = "Pedro Oliveira", City = "Brasília, DF", Text = "Já tinha tentado 2 vezes e reprovado. Com o CNH Virtual passei com nota 95! Muito bom!", Rating = 5, Avatar = "🧑" },
+        new Testimonial { Name = "Juliana Ferreira", City = "Curitiba, PR", Text = "O suporte é maravilhoso! Tiraram todas as minhas dúvidas rapidinho. Super recomendo!", Rating = 5, Avatar = "👩‍💼" },
+        new Testimonial { Name = "Carlos Mendes", City = "Salvador, BA", Text = "Conteúdo atualizado e completo. Vale cada centavo! Passei de primeira e já estou dirigindo.", Rating = 5, Avatar = "👨‍💻" }
+    };
+
+    private class Testimonial
+    {
+        public string Name { get; set; } = "";
+        public string City { get; set; } = "";
+        public string Text { get; set; } = "";
+        public int Rating { get; set; }
+        public string Avatar { get; set; } = "";
+    }
+}

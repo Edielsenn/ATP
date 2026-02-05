@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="APICNHDigital/APICNHVirtual.csproj" />
+  <Project Path="CNHVirtual/CNHVirtual.csproj" />
+  <Project Path="CNHVirtualADM/CNHVirtualADM.csproj" />
+</Solution>

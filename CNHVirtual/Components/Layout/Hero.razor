@@ -1,0 +1,198 @@
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <div class="animate-fade-in">
+                <h1>
+                    Conquiste sua <span class="highlight">CNH</span> com Confiança
+                </h1>
+                <p>
+                    Prepare-se para o exame da CNH com o curso online mais completo do Brasil.
+                    Aprenda no seu ritmo e garanta sua aprovação!
+                </p>
+                <div class="hero-buttons">
+                    <a href="#cursos" class="btn btn-primary">Ver Planos</a>
+                    <a href="#como-funciona" class="btn btn-secondary">Como Funciona</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-value">98%</div>
+                        <div class="stat-label">Taxa de Aprovação</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">+50mil</div>
+                        <div class="stat-label">Alunos Aprovados</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">4.9⭐</div>
+                        <div class="stat-label">Avaliação</div>
+                    </div>
+                </div>
+            </div>
+            <div class="animate-slide-up" style="display: none;">
+                @* Imagem do hero - pode adicionar depois *@
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .hero {
+        padding: 8rem 2rem 5rem;
+        background: linear-gradient(135deg, #ebf8ff 0%, #ffffff 100%);
+        animation: fadeIn 1s ease-in;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .hero-content {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 4rem;
+        align-items: center;
+    }
+
+    .hero h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        line-height: 1.2;
+        margin-bottom: 1.5rem;
+        color: #1a202c;
+    }
+
+    .highlight {
+        color: #0081f2;
+        position: relative;
+    }
+
+    .hero p {
+        font-size: 1.25rem;
+        color: #4a5568;
+        margin-bottom: 2rem;
+        line-height: 1.8;
+    }
+
+    .hero-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 3rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 1rem 2rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+    }
+
+    .btn-primary {
+        background: #0081f2;
+        color: white;
+        box-shadow: 0 4px 14px rgba(0, 129, 242, 0.4);
+    }
+
+    .btn-primary:hover {
+        background: #0066c2;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 129, 242, 0.5);
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #0081f2;
+        border: 2px solid #0081f2;
+    }
+
+    .btn-secondary:hover {
+        background: #f7fafc;
+        transform: translateY(-2px);
+    }
+
+    .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+        margin-top: 3rem;
+    }
+
+    .stat {
+        text-align: center;
+        padding: 1.5rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s;
+    }
+
+    .stat:hover {
+        transform: translateY(-4px);
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #0081f2;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: #718096;
+    }
+
+    .animate-fade-in {
+        animation: fadeInUp 1s ease-out;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .hero {
+            padding: 5rem 1rem 3rem;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+        }
+
+        .hero-buttons {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+
+        .hero-stats {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+    }
+</style>

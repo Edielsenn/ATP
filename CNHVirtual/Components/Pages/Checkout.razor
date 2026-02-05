@@ -1,0 +1,144 @@
+@page "/checkout"
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject IConfiguration Configuration
+
+<PageTitle>Finalizar Compra - CNH Virtual</PageTitle>
+
+<div style="min-height: 100vh; padding: 8rem 2rem 5rem; background: #f7fafc;">
+    <div class="container" style="max-width: 1200px;">
+        @if (string.IsNullOrEmpty(PlanoIdParam))
+        {
+            <div style="text-center; padding: 3rem;">
+                <h1 style="font-size: 2rem; font-weight: bold; color: #2d3748; margin-bottom: 1rem;">
+                    Nenhum plano selecionado
+                </h1>
+                <p style="color: #718096; margin-bottom: 2rem;">
+                    Por favor, selecione um plano na página inicial.
+                </p>
+                <a href="/#cursos" class="btn btn-primary" style="display: inline-block;">
+                    Ver Planos
+                </a>
+            </div>
+        }
+        else if (isLoading)
+        {
+            <div style="text-center; padding: 3rem;">
+                <p style="font-size: 1.25rem; color: #718096;">Carregando informações do plano...</p>
+            </div>
+        }
+        else if (plano == null)
+        {
+            <div style="text-center; padding: 3rem;">
+                <h1 style="font-size: 2rem; font-weight: bold; color: #e53e3e; margin-bottom: 1rem;">
+                    Plano não encontrado
+                </h1>
+                <a href="/#cursos" class="btn btn-primary" style="display: inline-block;">
+                    Voltar para Planos
+                </a>
+            </div>
+        }
+        else
+        {
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <h1 style="font-size: 2.5rem; font-weight: bold; color: #2d3748; margin-bottom: 0.5rem;">
+                    Finalizar Compra
+                </h1>
+                <p style="color: #718096;">
+                    Preencha seus dados e escolha a forma de pagamento
+                </p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+                @* Resumo do Pedido (Sidebar) *@
+                <div style="order: 2;">
+                    <div class="card" style="position: sticky; top: 6rem;">
+                        <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1.5rem;">Resumo do Pedido</h2>
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <h3 style="font-weight: bold; font-size: 1.125rem; margin-bottom: 0.5rem;">@plano.Nome</h3>
+                            <div style="display: flex; justify-content: space-between; color: #718096; margin-bottom: 0.5rem;">
+                                <span>Valor:</span>
+                                <span>R$ @plano.Preco.ToString("F2")</span>
+                            </div>
+                            @if (plano.PrecoPromocional.HasValue && plano.PrecoPromocional < plano.Preco)
+                            {
+                                <div style="display: flex; justify-content: space-between; color: var(--success); font-weight: 600; margin-bottom: 0.5rem;">
+                                    <span>Desconto:</span>
+                                    <span>- R$ @((plano.Preco - plano.PrecoPromocional.Value).ToString("F2"))</span>
+                                </div>
+                            }
+                            <div style="border-top: 1px solid #e2e8f0; padding-top: 1rem; margin-top: 1rem;">
+                                <div style="display: flex; justify-content: space-between; font-size: 1.25rem; font-weight: bold;">
+                                    <span>Total:</span>
+                                    <span style="color: var(--primary);">R$ @((plano.PrecoPromocional ?? plano.Preco).ToString("F2"))</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="background: #ebf8ff; border-radius: 0.5rem; padding: 1rem; font-size: 0.875rem; color: #2d3748;">
+                            <p style="font-weight: 600; margin-bottom: 0.5rem;">✅ Compra Segura</p>
+                            <ul style="list-style: none; padding: 0; margin: 0;">
+                                <li>• Dados criptografados</li>
+                                <li>• Acesso imediato</li>
+                                <li>• Garantia de 7 dias</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                @* Formulário de Checkout *@
+                <div style="order: 1;">
+                    <CheckoutFormComponent PlanoId="@plano.Id" Plano="@plano" />
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "plano")]
+    public string? PlanoIdParam { get; set; }
+
+    private PlanoModel? plano;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(PlanoIdParam))
+        {
+            await CarregarPlano();
+        }
+        else
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CarregarPlano()
+    {
+        try
+        {
+            var apiUrl = Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5273";
+            plano = await Http.GetFromJsonAsync<PlanoModel>($"{apiUrl}/api/planos/{PlanoIdParam}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar plano: {ex.Message}");
+            plano = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    public class PlanoModel
+    {
+        public int Id { get; set; }
+        public string Nome { get; set; } = "";
+        public decimal Preco { get; set; }
+        public decimal? PrecoPromocional { get; set; }
+    }
+}

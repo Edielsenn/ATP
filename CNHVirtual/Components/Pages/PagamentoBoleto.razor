@@ -1,0 +1,174 @@
+@page "/pagamento/boleto"
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>Boleto Gerado - CNH Virtual</PageTitle>
+
+<div style="min-height: 100vh; padding: 8rem 2rem 5rem; background: #f7fafc;">
+    <div class="container" style="max-width: 800px;">
+        @if (isLoading)
+        {
+            <div style="text-center; padding: 3rem;">
+                <p style="font-size: 1.25rem; color: #718096;">Carregando informações do boleto...</p>
+            </div>
+        }
+        else if (pagamento == null)
+        {
+            <div class="card" style="text-align: center; padding: 3rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">❌</div>
+                <h1 style="font-size: 2rem; font-weight: bold; color: #e53e3e; margin-bottom: 1rem;">
+                    Boleto não encontrado
+                </h1>
+                <a href="/" class="btn btn-primary" style="display: inline-block;">
+                    Voltar para Início
+                </a>
+            </div>
+        }
+        else
+        {
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h1 style="font-size: 2.5rem; font-weight: bold; color: #2d3748; margin-bottom: 0.5rem;">
+                    Boleto Gerado com Sucesso!
+                </h1>
+                <p style="color: #718096;">
+                    Pague o boleto até o vencimento para liberar seu acesso
+                </p>
+            </div>
+
+            <div class="card" style="margin-bottom: 2rem;">
+                <div style="text-align: center; padding: 2rem; background: #fffbeb; border-radius: 1rem; margin-bottom: 2rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🏦</div>
+                    <h2 style="font-size: 1.5rem; font-weight: bold; color: #92400e; margin-bottom: 0.5rem;">
+                        Aguardando Pagamento
+                    </h2>
+                    <p style="color: #78350f;">
+                        O boleto pode levar até 3 dias úteis para ser compensado
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="font-weight: bold; margin-bottom: 1rem;">Informações do Pedido</h3>
+                    <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #e2e8f0;">
+                        <span style="color: #718096;">Número do Pedido:</span>
+                        <span style="font-weight: 600;">@pagamento.Pedido.Numero</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #e2e8f0;">
+                        <span style="color: #718096;">Plano:</span>
+                        <span style="font-weight: 600;">@pagamento.Plano</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #e2e8f0;">
+                        <span style="color: #718096;">Valor:</span>
+                        <span style="font-weight: 600; font-size: 1.25rem; color: var(--primary);">
+                            R$ @pagamento.Valor.ToString("F2")
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.75rem 0;">
+                        <span style="color: #718096;">Vencimento:</span>
+                        <span style="font-weight: 600; color: #e53e3e;">
+                            @pagamento.DataVencimento?.ToString("dd/MM/yyyy")
+                        </span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="font-weight: bold; margin-bottom: 1rem;">Linha Digitável</h3>
+                    <div style="background: #f7fafc; border: 2px dashed #cbd5e0; border-radius: 0.5rem; padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                        <code id="linhaDigitavel" style="font-size: 0.875rem; color: #2d3748; word-break: break-all; flex: 1;">
+                            @pagamento.LinhaDigitavel
+                        </code>
+                        <button @onclick="CopiarLinhaDigitavel"
+                                style="margin-left: 1rem; padding: 0.5rem 1rem; background: var(--primary); color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; white-space: nowrap;">
+                            📋 Copiar
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    @if (!string.IsNullOrEmpty(pagamento.BoletoUrl))
+                    {
+                        <a href="@pagamento.BoletoUrl" target="_blank" class="btn btn-primary" style="flex: 1; text-align: center;">
+                            📄 Ver Boleto (PDF)
+                        </a>
+                    }
+                    <a href="/" class="btn btn-secondary" style="flex: 1; text-align: center;">
+                        Voltar para Início
+                    </a>
+                </div>
+            </div>
+
+            <div style="background: #e0f2fe; border: 1px solid #0ea5e9; border-radius: 1rem; padding: 1.5rem;">
+                <h4 style="font-weight: bold; color: #0c4a6e; margin-bottom: 0.5rem;">ℹ️ Importante</h4>
+                <ul style="color: #0c4a6e; font-size: 0.875rem; padding-left: 1.5rem; margin: 0;">
+                    <li>Salve o boleto ou a linha digitável para efetuar o pagamento</li>
+                    <li>Após o pagamento, aguarde até 3 dias úteis para compensação</li>
+                    <li>Você receberá um email assim que o pagamento for confirmado</li>
+                    <li>Seu acesso será liberado automaticamente após a confirmação</li>
+                </ul>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")]
+    public string? PagamentoId { get; set; }
+
+    private PagamentoModel? pagamento;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(PagamentoId))
+        {
+            await CarregarPagamento();
+        }
+        else
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CarregarPagamento()
+    {
+        try
+        {
+            var apiUrl = "http://localhost:5273";
+            pagamento = await Http.GetFromJsonAsync<PagamentoModel>($"{apiUrl}/api/pagamentos/{PagamentoId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar pagamento: {ex.Message}");
+            pagamento = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CopiarLinhaDigitavel()
+    {
+        if (!string.IsNullOrEmpty(pagamento?.LinhaDigitavel))
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", pagamento.LinhaDigitavel);
+            await JS.InvokeVoidAsync("alert", "Linha digitável copiada!");
+        }
+    }
+
+    public class PagamentoModel
+    {
+        public int Id { get; set; }
+        public string Status { get; set; } = "";
+        public decimal Valor { get; set; }
+        public string? BoletoUrl { get; set; }
+        public string? LinhaDigitavel { get; set; }
+        public DateTime? DataVencimento { get; set; }
+        public string Plano { get; set; } = "";
+        public PedidoModel Pedido { get; set; } = new();
+    }
+
+    public class PedidoModel
+    {
+        public string Numero { get; set; } = "";
+    }
+}

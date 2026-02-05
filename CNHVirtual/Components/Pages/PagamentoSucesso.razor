@@ -1,0 +1,170 @@
+@page "/pagamento/sucesso"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Pagamento Confirmado - CNH Virtual</PageTitle>
+
+<div style="min-height: 100vh; padding: 8rem 2rem 5rem; background: linear-gradient(135deg, #ebf8ff 0%, #ffffff 100%);">
+    <div class="container" style="max-width: 700px; text-align: center;">
+        @if (isLoading)
+        {
+            <div style="padding: 3rem;">
+                <p style="font-size: 1.25rem; color: #718096;">Carregando informações do pagamento...</p>
+            </div>
+        }
+        else if (pagamento == null)
+        {
+            <div class="card" style="padding: 3rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">❌</div>
+                <h1 style="font-size: 2rem; font-weight: bold; color: #e53e3e; margin-bottom: 1rem;">
+                    Pagamento não encontrado
+                </h1>
+                <p style="color: #718096; margin-bottom: 2rem;">
+                    Não conseguimos localizar as informações do seu pagamento.
+                </p>
+                <a href="/" class="btn btn-primary" style="display: inline-block;">
+                    Voltar para Início
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="card" style="padding: 3rem;">
+                <div style="font-size: 5rem; margin-bottom: 1rem; animation: bounce 1s ease-in-out;">
+                    ✅
+                </div>
+
+                <h1 style="font-size: 2.5rem; font-weight: bold; color: var(--success); margin-bottom: 1rem;">
+                    Pagamento Confirmado!
+                </h1>
+
+                <p style="font-size: 1.125rem; color: #4a5568; margin-bottom: 2rem;">
+                    Seu pagamento foi processado com sucesso e seu acesso foi liberado imediatamente.
+                </p>
+
+                <div style="background: #f7fafc; border-radius: 1rem; padding: 2rem; margin-bottom: 2rem; text-align: left;">
+                    <h3 style="font-weight: bold; margin-bottom: 1rem;">Detalhes do Pedido</h3>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">
+                        <span style="color: #718096;">Número do Pedido:</span>
+                        <span style="font-weight: 600;">@pagamento.Pedido.Numero</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">
+                        <span style="color: #718096;">Plano:</span>
+                        <span style="font-weight: 600;">@pagamento.Pedido.Plano.Nome</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">
+                        <span style="color: #718096;">Cliente:</span>
+                        <span style="font-weight: 600;">@pagamento.Pedido.Cliente.Nome</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">
+                        <span style="color: #718096;">Email:</span>
+                        <span style="font-weight: 600;">@pagamento.Pedido.Cliente.Email</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                        <span style="color: #718096;">Valor Pago:</span>
+                        <span style="font-weight: 600; color: var(--success); font-size: 1.25rem;">
+                            R$ @pagamento.Valor.ToString("F2")
+                        </span>
+                    </div>
+                </div>
+
+                <div style="background: #d1fae5; border: 1px solid var(--success); border-radius: 1rem; padding: 1.5rem; margin-bottom: 2rem;">
+                    <h4 style="font-weight: bold; color: #065f46; margin-bottom: 0.5rem;">📧 Verifique seu email!</h4>
+                    <p style="color: #065f46; font-size: 0.875rem;">
+                        Enviamos um email para <strong>@pagamento.Pedido.Cliente.Email</strong> com suas credenciais de acesso e instruções para começar seu curso.
+                    </p>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="/" class="btn btn-primary">
+                        Voltar para Início
+                    </a>
+                    <button @onclick="AbrirAreaDoAluno" class="btn btn-secondary">
+                        Acessar Área do Aluno
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    @@keyframes bounce {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-20px);
+        }
+    }
+</style>
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")]
+    public string? PagamentoId { get; set; }
+
+    private PagamentoModel? pagamento;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(PagamentoId))
+        {
+            await CarregarPagamento();
+        }
+        else
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CarregarPagamento()
+    {
+        try
+        {
+            var apiUrl = "http://localhost:5273";
+            pagamento = await Http.GetFromJsonAsync<PagamentoModel>($"{apiUrl}/api/pagamentos/{PagamentoId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar pagamento: {ex.Message}");
+            pagamento = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void AbrirAreaDoAluno()
+    {
+        // TODO: Redirecionar para área do aluno (quando implementada)
+        Navigation.NavigateTo("/");
+    }
+
+    public class PagamentoModel
+    {
+        public int Id { get; set; }
+        public string Status { get; set; } = "";
+        public decimal Valor { get; set; }
+        public PedidoModel Pedido { get; set; } = new();
+    }
+
+    public class PedidoModel
+    {
+        public string Numero { get; set; } = "";
+        public PlanoModel Plano { get; set; } = new();
+        public ClienteModel Cliente { get; set; } = new();
+    }
+
+    public class PlanoModel
+    {
+        public string Nome { get; set; } = "";
+    }
+
+    public class ClienteModel
+    {
+        public string Nome { get; set; } = "";
+        public string Email { get; set; } = "";
+    }
+}

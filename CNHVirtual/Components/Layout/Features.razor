@@ -1,0 +1,70 @@
+<section style="background: white;">
+    <div class="container">
+        <h2 class="section-title">
+            Por que escolher a <span style="color: var(--primary);">CNH Virtual</span>?
+        </h2>
+        <p class="section-subtitle">
+            O método mais eficiente para conquistar sua habilitação
+        </p>
+
+        <div class="cards-grid">
+            @foreach (var feature in features)
+            {
+                <div class="card">
+                    <div class="card-icon">@feature.Icon</div>
+                    <h3>@feature.Title</h3>
+                    <p>@feature.Description</p>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<Feature> features = new()
+    {
+        new Feature
+        {
+            Icon = "📚",
+            Title = "Conteúdo Completo",
+            Description = "Todo material teórico necessário para aprovação no exame da CNH"
+        },
+        new Feature
+        {
+            Icon = "🎯",
+            Title = "Simulados Ilimitados",
+            Description = "Pratique quantas vezes quiser com questões atualizadas"
+        },
+        new Feature
+        {
+            Icon = "📱",
+            Title = "Estude em Qualquer Lugar",
+            Description = "Acesse de qualquer dispositivo: celular, tablet ou computador"
+        },
+        new Feature
+        {
+            Icon = "👨‍🏫",
+            Title = "Professores Especializados",
+            Description = "Aprenda com instrutores experientes e aprovados pelo DETRAN"
+        },
+        new Feature
+        {
+            Icon = "📊",
+            Title = "Acompanhe seu Progresso",
+            Description = "Estatísticas detalhadas do seu desempenho em cada matéria"
+        },
+        new Feature
+        {
+            Icon = "🏆",
+            Title = "Garantia de Aprovação",
+            Description = "Se não passar, renovamos seu acesso gratuitamente"
+        }
+    };
+
+    private class Feature
+    {
+        public string Icon { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+    }
+}

@@ -1,0 +1,89 @@
+<section id="faq" style="background: white;">
+    <div class="container" style="max-width: 800px;">
+        <h2 class="section-title">
+            Perguntas <span style="color: var(--primary);">Frequentes</span>
+        </h2>
+        <p class="section-subtitle">
+            Tire suas dúvidas sobre nossos cursos
+        </p>
+
+        <div style="margin-top: 3rem;">
+            @foreach (var (faq, index) in faqs.Select((f, i) => (f, i)))
+            {
+                <div class="faq-item">
+                    <button class="faq-question" @onclick="() => ToggleFAQ(index)">
+                        <span>@faq.Question</span>
+                        <span style="color: var(--primary); font-size: 1.5rem; font-weight: bold;">
+                            @(openIndex == index ? "−" : "+")
+                        </span>
+                    </button>
+                    @if (openIndex == index)
+                    {
+                        <div class="faq-answer">
+                            <p>@faq.Answer</p>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    private int? openIndex = null;
+
+    private void ToggleFAQ(int index)
+    {
+        openIndex = openIndex == index ? null : index;
+    }
+
+    private List<FAQItem> faqs = new()
+    {
+        new FAQItem
+        {
+            Question = "Como funciona o acesso ao curso?",
+            Answer = "Após a confirmação do pagamento, você recebe imediatamente um email com seus dados de acesso à plataforma. Pode estudar de qualquer dispositivo: celular, tablet ou computador."
+        },
+        new FAQItem
+        {
+            Question = "Quanto tempo tenho de acesso?",
+            Answer = "Depende do plano escolhido. O plano Básico tem 90 dias de acesso, o Intermediário 180 dias, e o Premium oferece acesso vitalício ao conteúdo."
+        },
+        new FAQItem
+        {
+            Question = "Posso parcelar o pagamento?",
+            Answer = "Sim! Aceitamos pagamento em até 12x no cartão de crédito. Também oferecemos opção de pagamento via boleto bancário (à vista) ou PIX."
+        },
+        new FAQItem
+        {
+            Question = "O curso realmente prepara para a prova do DETRAN?",
+            Answer = "Sim! Nosso conteúdo é atualizado conforme as diretrizes do DETRAN e inclui questões similares às da prova oficial. Temos 98% de aprovação entre nossos alunos."
+        },
+        new FAQItem
+        {
+            Question = "E se eu não passar na prova?",
+            Answer = "Oferecemos garantia de aprovação no plano Premium. Se você não passar após concluir todo o curso, renovamos seu acesso gratuitamente até sua aprovação."
+        },
+        new FAQItem
+        {
+            Question = "O certificado é válido?",
+            Answer = "Sim! Após concluir o curso, você recebe um certificado digital que comprova que você estudou o conteúdo teórico necessário para o exame da CNH."
+        },
+        new FAQItem
+        {
+            Question = "Posso tirar dúvidas durante o curso?",
+            Answer = "Sim! Todos os planos incluem suporte por email. Os planos Intermediário e Premium têm suporte prioritário e VIP, respectivamente."
+        },
+        new FAQItem
+        {
+            Question = "O conteúdo está atualizado?",
+            Answer = "Sim! Nosso conteúdo é atualizado regularmente para refletir as mudanças nas leis de trânsito e nas questões do DETRAN."
+        }
+    };
+
+    private class FAQItem
+    {
+        public string Question { get; set; } = "";
+        public string Answer { get; set; } = "";
+    }
+}
