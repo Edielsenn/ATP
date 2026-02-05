@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 
-namespace CNHVirtualAdmin.Services;
+namespace CNHVirtualADM.Services;
 
 public class ApiService
 {

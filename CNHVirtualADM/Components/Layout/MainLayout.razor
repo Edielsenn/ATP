@@ -1,17 +1,77 @@
 ﻿@inherits LayoutComponentBase
+@inject AuthStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<AuthorizeView>
+    <Authorized>
+        <div class="page">
+            <div class="sidebar">
+                <NavMenu />
+            </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <main>
+                <div class="top-row px-4">
+                    <div class="user-info">
+                        <span class="user-email">@context.User?.Identity?.Name</span>
+                        <button @onclick="Logout" class="btn-logout">Sair</button>
+                    </div>
+                </div>
+
+                <article class="content px-4">
+                    @Body
+                </article>
+            </main>
         </div>
+    </Authorized>
+    <NotAuthorized>
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+            <div style="text-align: center;">
+                <h2>Acesso não autorizado</h2>
+                <p>Você precisa fazer login para acessar esta página.</p>
+                <a href="/login" style="padding: 10px 20px; background: #0081f2; color: white; text-decoration: none; border-radius: 5px;">Ir para Login</a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
 </div>
+
+<style>
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .user-email {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .btn-logout {
+        background: #f44336;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .btn-logout:hover {
+        background: #d32f2f;
+    }
+</style>
+
+@code {
+    private async Task Logout()
+    {
+        await AuthStateProvider.RemoveTokenAsync();
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

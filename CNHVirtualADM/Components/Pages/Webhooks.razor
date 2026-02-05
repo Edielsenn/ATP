@@ -1,0 +1,282 @@
+@page "/webhooks"
+@rendermode InteractiveServer
+@inject ApiService ApiService
+
+<PageTitle>Webhooks - CNH Virtual Admin</PageTitle>
+
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h1>Webhooks</h1>
+            <p>Logs de webhooks recebidos do ASAAS</p>
+        </div>
+        <div class="header-actions">
+            <select @bind="filterEvento" class="filter-select">
+                <option value="">Todos os eventos</option>
+                <option value="PAYMENT_CREATED">Pagamento Criado</option>
+                <option value="PAYMENT_CONFIRMED">Pagamento Confirmado</option>
+                <option value="PAYMENT_RECEIVED">Pagamento Recebido</option>
+                <option value="PAYMENT_OVERDUE">Pagamento Vencido</option>
+            </select>
+            <button @onclick="LoadWebhooks" class="btn-refresh">🔄 Atualizar</button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Carregando webhooks...</p>
+        </div>
+    }
+    else if (filteredWebhooks.Any())
+    {
+        <div class="webhooks-list">
+            @foreach (var webhook in filteredWebhooks)
+            {
+                <div class="webhook-card">
+                    <div class="webhook-header">
+                        <div>
+                            <span class="badge @GetEventoClass(webhook.Evento)">
+                                @webhook.Evento
+                            </span>
+                            <span class="webhook-time">@webhook.DataRecebimento.ToString("dd/MM/yyyy HH:mm:ss")</span>
+                        </div>
+                        <button @onclick="() => TogglePayload(webhook.Id)" class="btn-toggle">
+                            @(expandedWebhooks.Contains(webhook.Id) ? "▼" : "▶") Ver Payload
+                        </button>
+                    </div>
+
+                    @if (webhook.PaymentId != null)
+                    {
+                        <div class="webhook-info">
+                            <strong>Payment ID:</strong> @webhook.PaymentId
+                        </div>
+                    }
+
+                    @if (expandedWebhooks.Contains(webhook.Id))
+                    {
+                        <div class="webhook-payload">
+                            <pre>@webhook.Payload</pre>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <div class="empty-icon">🔔</div>
+            <h3>Nenhum webhook encontrado</h3>
+            <p>Não há webhooks registrados ainda.</p>
+        </div>
+    }
+</div>
+
+<style>
+    .page-container { padding: 20px; }
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .page-header h1 { margin: 0 0 8px 0; font-size: 32px; color: #333; }
+    .page-header p { margin: 0; color: #666; }
+    .header-actions { display: flex; gap: 12px; }
+    .filter-select {
+        padding: 10px 16px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        background: white;
+        cursor: pointer;
+    }
+    .btn-refresh {
+        padding: 10px 16px;
+        background: #0081f2;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    .btn-refresh:hover { background: #0066c2; }
+    .webhooks-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .webhook-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .webhook-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .webhook-time {
+        margin-left: 12px;
+        color: #666;
+        font-size: 13px;
+    }
+    .btn-toggle {
+        padding: 6px 12px;
+        background: #e9ecef;
+        color: #495057;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn-toggle:hover { background: #dee2e6; }
+    .webhook-info {
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        font-size: 14px;
+        margin-top: 12px;
+    }
+    .webhook-payload {
+        margin-top: 16px;
+        padding: 16px;
+        background: #1e1e1e;
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+    .webhook-payload pre {
+        margin: 0;
+        color: #d4d4d4;
+        font-size: 13px;
+        font-family: 'Courier New', monospace;
+        line-height: 1.5;
+    }
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .badge-success { background: #e8f5e9; color: #388e3c; }
+    .badge-info { background: #e3f2fd; color: #1976d2; }
+    .badge-warning { background: #fff3e0; color: #f57c00; }
+    .badge-danger { background: #ffebee; color: #d32f2f; }
+    .empty-state, .loading-container {
+        background: white;
+        border-radius: 12px;
+        padding: 60px 20px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .empty-icon { font-size: 64px; margin-bottom: 16px; }
+    .empty-state h3 { margin: 0 0 8px 0; color: #333; }
+    .empty-state p { margin: 0; color: #666; }
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0081f2;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    private List<WebhookDto> webhooks = new();
+    private bool isLoading = true;
+    private string filterEvento = string.Empty;
+    private HashSet<int> expandedWebhooks = new();
+
+    private IEnumerable<WebhookDto> filteredWebhooks => webhooks
+        .Where(w => string.IsNullOrEmpty(filterEvento) || w.Evento == filterEvento)
+        .OrderByDescending(w => w.DataRecebimento);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWebhooks();
+    }
+
+    private async Task LoadWebhooks()
+    {
+        try
+        {
+            isLoading = true;
+            await Task.Delay(500);
+            webhooks = GetMockWebhooks();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar webhooks: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void TogglePayload(int id)
+    {
+        if (expandedWebhooks.Contains(id))
+            expandedWebhooks.Remove(id);
+        else
+            expandedWebhooks.Add(id);
+    }
+
+    private string GetEventoClass(string evento)
+    {
+        return evento switch
+        {
+            "PAYMENT_CONFIRMED" or "PAYMENT_RECEIVED" => "badge-success",
+            "PAYMENT_CREATED" => "badge-info",
+            "PAYMENT_OVERDUE" => "badge-danger",
+            _ => "badge-warning"
+        };
+    }
+
+    private List<WebhookDto> GetMockWebhooks()
+    {
+        return new List<WebhookDto>
+        {
+            new() {
+                Id = 1,
+                Evento = "PAYMENT_CONFIRMED",
+                PaymentId = "pay_123456789",
+                Payload = "{\n  \"event\": \"PAYMENT_CONFIRMED\",\n  \"payment\": {\n    \"id\": \"pay_123456789\",\n    \"value\": 97.00,\n    \"status\": \"CONFIRMED\"\n  }\n}",
+                DataRecebimento = DateTime.Now.AddMinutes(-30)
+            },
+            new() {
+                Id = 2,
+                Evento = "PAYMENT_CREATED",
+                PaymentId = "pay_987654321",
+                Payload = "{\n  \"event\": \"PAYMENT_CREATED\",\n  \"payment\": {\n    \"id\": \"pay_987654321\",\n    \"value\": 197.00,\n    \"status\": \"PENDING\"\n  }\n}",
+                DataRecebimento = DateTime.Now.AddHours(-2)
+            }
+        };
+    }
+
+    public class WebhookDto
+    {
+        public int Id { get; set; }
+        public string Evento { get; set; } = string.Empty;
+        public string? PaymentId { get; set; }
+        public string Payload { get; set; } = string.Empty;
+        public DateTime DataRecebimento { get; set; }
+    }
+}

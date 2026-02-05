@@ -8,14 +8,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// HttpClient configurado
-builder.Services.AddScoped(sp => new HttpClient
+// HttpClient configurado com factory
+builder.Services.AddHttpClient<ApiService>(client =>
 {
-    BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7000")
+    var baseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5273";
+    client.BaseAddress = new Uri(baseUrl);
 });
-
-// Services customizados
-builder.Services.AddScoped<ApiService>();
 builder.Services.AddScoped<AuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
     provider.GetRequiredService<AuthStateProvider>());

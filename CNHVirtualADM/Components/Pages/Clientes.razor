@@ -1,0 +1,410 @@
+@page "/clientes"
+@rendermode InteractiveServer
+@inject ApiService ApiService
+
+<PageTitle>Clientes - CNH Virtual Admin</PageTitle>
+
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h1>Clientes</h1>
+            <p>Gerenciamento de clientes cadastrados</p>
+        </div>
+        <div class="header-actions">
+            <input type="text" @bind="searchTerm" @bind:event="oninput" placeholder="Buscar por nome, email, CPF..." class="search-input" />
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Carregando clientes...</p>
+        </div>
+    }
+    else if (filteredClientes.Any())
+    {
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>CPF</th>
+                        <th>Telefone</th>
+                        <th>Data Cadastro</th>
+                        <th>Pedidos</th>
+                        <th>Assinaturas</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var cliente in filteredClientes)
+                    {
+                        <tr>
+                            <td><span class="badge badge-light">#@cliente.Id</span></td>
+                            <td>
+                                <div class="client-info">
+                                    <strong>@cliente.Nome</strong>
+                                    <small>@cliente.Email</small>
+                                </div>
+                            </td>
+                            <td>@FormatCPF(cliente.CPF)</td>
+                            <td>@FormatTelefone(cliente.Telefone)</td>
+                            <td><small>@cliente.DataCadastro.ToString("dd/MM/yyyy")</small></td>
+                            <td>
+                                <span class="badge badge-info">@cliente.TotalPedidos</span>
+                            </td>
+                            <td>
+                                @if (cliente.AssinaturasAtivas > 0)
+                                {
+                                    <span class="badge badge-success">@cliente.AssinaturasAtivas ativa(s)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-light">Nenhuma</span>
+                                }
+                            </td>
+                            <td>
+                                <button @onclick="() => ViewDetails(cliente.Id)" class="btn-icon" title="Ver detalhes">
+                                    👁️
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="summary-cards">
+            <div class="summary-card">
+                <strong>Total de Clientes</strong>
+                <span>@clientes.Count</span>
+            </div>
+            <div class="summary-card">
+                <strong>Com Assinaturas Ativas</strong>
+                <span>@clientes.Count(c => c.AssinaturasAtivas > 0)</span>
+            </div>
+            <div class="summary-card">
+                <strong>Total de Pedidos</strong>
+                <span>@clientes.Sum(c => c.TotalPedidos)</span>
+            </div>
+            <div class="summary-card">
+                <strong>Novos Este Mês</strong>
+                <span>@clientes.Count(c => c.DataCadastro.Month == DateTime.Now.Month)</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <div class="empty-icon">👥</div>
+            <h3>Nenhum cliente encontrado</h3>
+            <p>Não há clientes cadastrados no sistema ainda.</p>
+        </div>
+    }
+</div>
+
+<style>
+    .page-container {
+        padding: 20px;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .page-header h1 {
+        margin: 0 0 8px 0;
+        font-size: 32px;
+        color: #333;
+    }
+
+    .page-header p {
+        margin: 0;
+        color: #666;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .search-input {
+        padding: 10px 16px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        min-width: 300px;
+    }
+
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow-x: auto;
+        margin-bottom: 20px;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+
+    .data-table thead {
+        background: #f8f9fa;
+    }
+
+    .data-table th {
+        padding: 16px;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .data-table td {
+        padding: 16px;
+        border-bottom: 1px solid #e9ecef;
+        font-size: 14px;
+    }
+
+    .data-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .client-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .client-info strong {
+        color: #333;
+    }
+
+    .client-info small {
+        color: #666;
+        font-size: 12px;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .badge-light {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .badge-info {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .badge-success {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .btn-icon:hover {
+        background: #e9ecef;
+    }
+
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+
+    .summary-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .summary-card strong {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .summary-card span {
+        color: #0081f2;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .empty-state {
+        background: white;
+        border-radius: 12px;
+        padding: 60px 20px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .empty-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+        margin: 0 0 8px 0;
+        color: #333;
+    }
+
+    .empty-state p {
+        margin: 0;
+        color: #666;
+    }
+
+    .loading-container {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0081f2;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    private List<ClienteDto> clientes = new();
+    private bool isLoading = true;
+    private string searchTerm = string.Empty;
+
+    private IEnumerable<ClienteDto> filteredClientes => clientes
+        .Where(c => string.IsNullOrEmpty(searchTerm) ||
+                   c.Nome.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                   c.Email.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                   c.CPF.Contains(searchTerm))
+        .OrderByDescending(c => c.DataCadastro);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadClientes();
+    }
+
+    private async Task LoadClientes()
+    {
+        try
+        {
+            isLoading = true;
+
+            // TODO: Criar endpoint /api/admin/clientes na API
+            // var result = await ApiService.GetAsync<List<ClienteDto>>("/api/admin/clientes");
+            // if (result != null) clientes = result;
+
+            // Mock data por enquanto
+            await Task.Delay(500);
+            clientes = GetMockClientes();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar clientes: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ViewDetails(int id)
+    {
+        // TODO: Implementar modal de detalhes
+        Console.WriteLine($"Ver detalhes do cliente {id}");
+    }
+
+    private string FormatCPF(string cpf)
+    {
+        if (string.IsNullOrEmpty(cpf) || cpf.Length != 11) return cpf;
+        return $"{cpf.Substring(0, 3)}.{cpf.Substring(3, 3)}.{cpf.Substring(6, 3)}-{cpf.Substring(9, 2)}";
+    }
+
+    private string FormatTelefone(string telefone)
+    {
+        if (string.IsNullOrEmpty(telefone)) return telefone;
+        var digits = new string(telefone.Where(char.IsDigit).ToArray());
+        if (digits.Length == 11)
+            return $"({digits.Substring(0, 2)}) {digits.Substring(2, 5)}-{digits.Substring(7, 4)}";
+        if (digits.Length == 10)
+            return $"({digits.Substring(0, 2)}) {digits.Substring(2, 4)}-{digits.Substring(6, 4)}";
+        return telefone;
+    }
+
+    private List<ClienteDto> GetMockClientes()
+    {
+        return new List<ClienteDto>
+        {
+            new() {
+                Id = 1,
+                Nome = "João Silva",
+                Email = "joao@email.com",
+                CPF = "12345678901",
+                Telefone = "11987654321",
+                DataCadastro = DateTime.Now.AddDays(-30),
+                TotalPedidos = 2,
+                AssinaturasAtivas = 1
+            },
+            new() {
+                Id = 2,
+                Nome = "Maria Santos",
+                Email = "maria@email.com",
+                CPF = "98765432109",
+                Telefone = "11912345678",
+                DataCadastro = DateTime.Now.AddDays(-15),
+                TotalPedidos = 1,
+                AssinaturasAtivas = 1
+            },
+            new() {
+                Id = 3,
+                Nome = "Pedro Oliveira",
+                Email = "pedro@email.com",
+                CPF = "45678912301",
+                Telefone = "11998765432",
+                DataCadastro = DateTime.Now.AddDays(-5),
+                TotalPedidos = 1,
+                AssinaturasAtivas = 0
+            }
+        };
+    }
+}

@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="APICNHDigital/APICNHVirtual.csproj" />
   <Project Path="CNHVirtual/CNHVirtual.csproj" />
   <Project Path="CNHVirtualADM/CNHVirtualADM.csproj" />
+  <Project Path="CNHVirtualAPI/CNHVirtualAPI.csproj" Id="456192a0-8703-4a72-a4f6-252c1fa30c4c" />
 </Solution>
