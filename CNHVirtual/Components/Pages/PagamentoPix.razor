@@ -1,0 +1,195 @@
+@page "/pagamento/pix"
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject IConfiguration Configuration
+
+<PageTitle>Pagamento PIX - CNH Virtual</PageTitle>
+
+<div style="min-height: 100vh; padding: 8rem 2rem 5rem; background: #f7fafc;">
+    <div class="container" style="max-width: 800px;">
+        <div style="text-align: center; margin-bottom: 3rem;">
+            <div style="width: 80px; height: 80px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <span style="font-size: 3rem;">💰</span>
+            </div>
+            <h1 style="font-size: 2.5rem; font-weight: bold; color: #2d3748; margin-bottom: 0.5rem;">
+                Pagamento via PIX
+            </h1>
+            <p style="color: #718096; font-size: 1.125rem;">
+                Escaneie o QR Code ou copie o código para realizar o pagamento
+            </p>
+        </div>
+
+        @if (isLoading)
+        {
+            <div style="text-align: center; padding: 3rem;">
+                <p style="font-size: 1.25rem; color: #718096;">Carregando informações do pagamento...</p>
+            </div>
+        }
+        else if (pagamento == null)
+        {
+            <div class="card" style="text-align: center;">
+                <h2 style="color: #e53e3e; margin-bottom: 1rem;">Pagamento não encontrado</h2>
+                <a href="/" class="btn btn-primary">Voltar para o Início</a>
+            </div>
+        }
+        else
+        {
+            <div class="card">
+                <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                    <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">Instruções para Pagamento</h2>
+                    <div style="background: #e6f7ff; border-left: 4px solid #0081f2; padding: 1rem; border-radius: 0.5rem;">
+                        <ol style="margin: 0; padding-left: 1.5rem; color: #2d3748;">
+                            <li style="margin-bottom: 0.5rem;">Abra o aplicativo do seu banco</li>
+                            <li style="margin-bottom: 0.5rem;">Escolha a opção "Pagar com PIX"</li>
+                            <li style="margin-bottom: 0.5rem;">Escaneie o QR Code ou cole o código PIX</li>
+                            <li style="margin-bottom: 0.5rem;">Confirme o pagamento</li>
+                            <li>Aguarde a confirmação (geralmente é instantânea)</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem;">QR Code PIX</h3>
+                    <div style="background: white; padding: 2rem; border-radius: 0.5rem; display: inline-block; border: 2px solid #e2e8f0;">
+                        <!-- QR Code seria gerado aqui pela API do ASAAS -->
+                        <div style="width: 250px; height: 250px; background: #f7fafc; display: flex; align-items: center; justify-content: center; border-radius: 0.5rem;">
+                            <p style="color: #718096; text-align: center; padding: 1rem;">
+                                QR Code será gerado<br/>pela integração ASAAS
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: bold; margin-bottom: 1rem;">Ou copie o código PIX:</h3>
+                    <div style="display: flex; gap: 1rem;">
+                        <input type="text"
+                               value="@codigoPix"
+                               readonly
+                               style="flex: 1; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem; background: #f7fafc; font-family: monospace; font-size: 0.875rem;" />
+                        <button type="button"
+                                @onclick="CopiarCodigoPix"
+                                class="btn btn-primary"
+                                style="white-space: nowrap;">
+                            📋 Copiar Código
+                        </button>
+                    </div>
+                    @if (copiado)
+                    {
+                        <p style="color: #10b981; font-size: 0.875rem; margin-top: 0.5rem;">
+                            ✅ Código copiado com sucesso!
+                        </p>
+                    }
+                </div>
+
+                <div style="background: #fffbeb; border: 1px solid #fbbf24; border-radius: 0.5rem; padding: 1rem; margin-bottom: 2rem;">
+                    <p style="font-size: 0.875rem; color: #92400e; margin-bottom: 0.5rem;">
+                        <strong>⏱️ Atenção:</strong>
+                    </p>
+                    <p style="font-size: 0.875rem; color: #92400e;">
+                        Este código PIX expira em <strong>30 minutos</strong>. Após o pagamento, o acesso será liberado automaticamente.
+                    </p>
+                </div>
+
+                <div style="border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: bold; margin-bottom: 1rem;">Detalhes do Pagamento</h3>
+                    <div style="display: grid; gap: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #718096;">Valor:</span>
+                            <span style="font-weight: 600; color: #2d3748;">R$ @pagamento.Valor.ToString("F2")</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #718096;">Status:</span>
+                            <span style="font-weight: 600; color: #f59e0b;">⏳ Aguardando Pagamento</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #718096;">Número do Pedido:</span>
+                            <span style="font-weight: 600; color: #2d3748;">@numeroPedido</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e2e8f0;">
+                    <p style="color: #718096; font-size: 0.875rem; margin-bottom: 1rem;">
+                        Após a confirmação do pagamento, você receberá um email com suas credenciais de acesso.
+                    </p>
+                    <a href="/" class="btn btn-outline" style="display: inline-block;">
+                        Voltar para o Início
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")]
+    public string? PagamentoId { get; set; }
+
+    private PagamentoModel? pagamento;
+    private string numeroPedido = "";
+    private string codigoPix = "00020126580014br.gov.bcb.pix0136a123456789-1234-1234-1234-1234567890ab5204000053039865802BR5913CNH Virtual6009SAO PAULO62070503***6304ABCD";
+    private bool copiado = false;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(PagamentoId))
+        {
+            await CarregarPagamento();
+        }
+        else
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CarregarPagamento()
+    {
+        try
+        {
+            var apiUrl = Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5273";
+            // Aqui você pode buscar os detalhes do pagamento da API
+            // Por enquanto, vamos criar um objeto mock
+            pagamento = new PagamentoModel
+            {
+                Id = int.Parse(PagamentoId ?? "0"),
+                Valor = 97.00m,
+                Status = "PENDING"
+            };
+            numeroPedido = $"PED-{DateTime.Now:yyyyMMdd}-{PagamentoId}";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar pagamento: {ex.Message}");
+            pagamento = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CopiarCodigoPix()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", codigoPix);
+            copiado = true;
+            await Task.Delay(3000);
+            copiado = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao copiar código: {ex.Message}");
+        }
+    }
+
+    public class PagamentoModel
+    {
+        public int Id { get; set; }
+        public decimal Valor { get; set; }
+        public string Status { get; set; } = "";
+    }
+}

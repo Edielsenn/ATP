@@ -19,7 +19,13 @@ public class AsaasService
         var apiKey = _configuration["Asaas:ApiKey"];
         var apiUrl = _configuration["Asaas:ApiUrl"];
 
-        _httpClient.BaseAddress = new Uri(apiUrl!);
+        // Garantir que a URL base termine com /
+        if (!apiUrl!.EndsWith("/"))
+        {
+            apiUrl += "/";
+        }
+
+        _httpClient.BaseAddress = new Uri(apiUrl);
         _httpClient.DefaultRequestHeaders.Add("access_token", apiKey);
     }
 
@@ -45,7 +51,7 @@ public class AsaasService
             var json = JsonSerializer.Serialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("/customers", content);
+            var response = await _httpClient.PostAsync("customers", content);
             var responseContent = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -97,7 +103,7 @@ public class AsaasService
             var json = JsonSerializer.Serialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("/payments", content);
+            var response = await _httpClient.PostAsync("payments", content);
             var responseContent = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -165,7 +171,7 @@ public class AsaasService
             var json = JsonSerializer.Serialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("/payments", content);
+            var response = await _httpClient.PostAsync("payments", content);
             var responseContent = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -190,7 +196,7 @@ public class AsaasService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"/payments/{paymentId}");
+            var response = await _httpClient.GetAsync($"payments/{paymentId}");
             var responseContent = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)

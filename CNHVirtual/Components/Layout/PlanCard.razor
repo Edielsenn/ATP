@@ -9,7 +9,7 @@
 
     <div class="plan-header">
         <h3 class="plan-name">@Plan.Nome</h3>
-        <p class="plan-description">@Plan.DescricaoCurta</p>
+        <p class="plan-description">@Plan.Descricao</p>
 
         @if (Plan.PrecoPromocional.HasValue && Plan.PrecoPromocional < Plan.Preco)
         {
@@ -39,10 +39,10 @@
         @foreach (var recurso in Plan.Recursos)
         {
             <li>
-                <span class="feature-icon" style="color: @(recurso.Incluido ? "var(--success)" : "var(--danger)");">
-                    @(recurso.Incluido ? "✓" : "✗")
+                <span class="feature-icon" style="color: #48bb78;">
+                    ✓
                 </span>
-                <span>@recurso.Descricao</span>
+                <span>@recurso</span>
             </li>
         }
     </ul>

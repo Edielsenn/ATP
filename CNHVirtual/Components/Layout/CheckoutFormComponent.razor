@@ -4,7 +4,8 @@
 @inject IConfiguration Configuration
 
 <div class="card">
-    <EditForm Model="@request" OnValidSubmit="@ProcessarPagamento">
+    <EditForm Model="@request" OnValidSubmit="@ProcessarPagamento" FormName="checkoutForm">
+        <DataAnnotationsValidator />
         @* Dados Pessoais *@
         <div style="margin-bottom: 2rem;">
             <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem;">Dados Pessoais</h3>
@@ -75,22 +76,44 @@
         @* Forma de Pagamento *@
         <div style="margin-bottom: 2rem;">
             <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem;">Forma de Pagamento</h3>
-            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
                 <button type="button"
-                        @onclick='() => request.FormaPagamento = "CREDIT_CARD"'
-                        style="flex: 1; padding: 1rem; border-radius: 0.5rem; font-weight: 600; border: 2px solid; transition: all 0.3s;
+                        @onclick="@(() => SelecionarFormaPagamento("CREDIT_CARD"))"
+                        class="payment-button @(request.FormaPagamento == "CREDIT_CARD" ? "active" : "")"
+                        style="padding: 1rem; border-radius: 0.5rem; font-weight: 600; border: 2px solid; transition: all 0.3s; cursor: pointer;
                                background: @(request.FormaPagamento == "CREDIT_CARD" ? "var(--primary)" : "white");
                                color: @(request.FormaPagamento == "CREDIT_CARD" ? "white" : "#2d3748");
                                border-color: @(request.FormaPagamento == "CREDIT_CARD" ? "var(--primary)" : "#cbd5e0");">
-                    💳 Cartão de Crédito
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 2rem;">💳</span>
+                        <span style="font-size: 0.875rem;">Cartão de Crédito</span>
+                    </div>
                 </button>
+
                 <button type="button"
-                        @onclick='() => request.FormaPagamento = "BOLETO"'
-                        style="flex: 1; padding: 1rem; border-radius: 0.5rem; font-weight: 600; border: 2px solid; transition: all 0.3s;
+                        @onclick="@(() => SelecionarFormaPagamento("PIX"))"
+                        class="payment-button @(request.FormaPagamento == "PIX" ? "active" : "")"
+                        style="padding: 1rem; border-radius: 0.5rem; font-weight: 600; border: 2px solid; transition: all 0.3s; cursor: pointer;
+                               background: @(request.FormaPagamento == "PIX" ? "var(--primary)" : "white");
+                               color: @(request.FormaPagamento == "PIX" ? "white" : "#2d3748");
+                               border-color: @(request.FormaPagamento == "PIX" ? "var(--primary)" : "#cbd5e0");">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 2rem;">💰</span>
+                        <span style="font-size: 0.875rem;">PIX</span>
+                    </div>
+                </button>
+
+                <button type="button"
+                        @onclick="@(() => SelecionarFormaPagamento("BOLETO"))"
+                        class="payment-button @(request.FormaPagamento == "BOLETO" ? "active" : "")"
+                        style="padding: 1rem; border-radius: 0.5rem; font-weight: 600; border: 2px solid; transition: all 0.3s; cursor: pointer;
                                background: @(request.FormaPagamento == "BOLETO" ? "var(--primary)" : "white");
                                color: @(request.FormaPagamento == "BOLETO" ? "white" : "#2d3748");
                                border-color: @(request.FormaPagamento == "BOLETO" ? "var(--primary)" : "#cbd5e0");">
-                    🏦 Boleto Bancário
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 2rem;">🏦</span>
+                        <span style="font-size: 0.875rem;">Boleto Bancário</span>
+                    </div>
                 </button>
             </div>
 
@@ -112,12 +135,31 @@
                     <input @bind="request.Cartao.Ccv" placeholder="CVV *" required maxlength="4"
                            style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 0.5rem;" />
                 </div>
+                <div style="background: #e6f7ff; border: 1px solid #0081f2; border-radius: 0.5rem; padding: 1rem; margin-top: 1rem;">
+                    <p style="font-size: 0.875rem; color: #004085;">
+                        ✅ Pagamento aprovado na hora. Acesso imediato após a confirmação.
+                    </p>
+                </div>
+            }
+            else if (request.FormaPagamento == "PIX")
+            {
+                <div style="background: #e6f7ff; border: 1px solid #0081f2; border-radius: 0.5rem; padding: 1rem;">
+                    <p style="font-size: 0.875rem; color: #004085; margin-bottom: 0.5rem;">
+                        <strong>✅ PIX - Pagamento Instantâneo</strong>
+                    </p>
+                    <p style="font-size: 0.875rem; color: #004085;">
+                        Após confirmar o pedido, você receberá um QR Code para pagamento. O acesso é liberado automaticamente após a confirmação do pagamento.
+                    </p>
+                </div>
             }
             else if (request.FormaPagamento == "BOLETO")
             {
                 <div style="background: #fffbeb; border: 1px solid #fbbf24; border-radius: 0.5rem; padding: 1rem;">
+                    <p style="font-size: 0.875rem; color: #92400e; margin-bottom: 0.5rem;">
+                        <strong>⚠️ Boleto Bancário</strong>
+                    </p>
                     <p style="font-size: 0.875rem; color: #92400e;">
-                        ⚠️ O boleto será gerado após a confirmação do pedido. O prazo de compensação é de 1 a 3 dias úteis.
+                        O boleto será gerado após a confirmação do pedido. O prazo de compensação é de 1 a 3 dias úteis.
                     </p>
                 </div>
             }
@@ -169,6 +211,14 @@
         request.FormaPagamento = "CREDIT_CARD";
     }
 
+    private void SelecionarFormaPagamento(string formaPagamento)
+    {
+        Console.WriteLine($"[CHECKOUT] Forma de pagamento selecionada: {formaPagamento}");
+        request.FormaPagamento = formaPagamento;
+        mensagemErro = null;
+        StateHasChanged();
+    }
+
     private async Task ProcessarPagamento()
     {
         isProcessing = true;
@@ -176,6 +226,8 @@
 
         try
         {
+            Console.WriteLine($"[CHECKOUT] Processando pagamento - Forma: {request.FormaPagamento}");
+
             var apiUrl = Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5273";
             var response = await Http.PostAsJsonAsync($"{apiUrl}/api/pagamentos/processar", request);
 
@@ -185,9 +237,16 @@
 
                 if (resultado != null)
                 {
+                    Console.WriteLine($"[CHECKOUT] Pagamento processado com sucesso - ID: {resultado.PagamentoId}, Status: {resultado.Status}");
+
+                    // Redirecionar baseado na forma de pagamento
                     if (request.FormaPagamento == "BOLETO")
                     {
                         Navigation.NavigateTo($"/pagamento/boleto?id={resultado.PagamentoId}");
+                    }
+                    else if (request.FormaPagamento == "PIX")
+                    {
+                        Navigation.NavigateTo($"/pagamento/pix?id={resultado.PagamentoId}");
                     }
                     else
                     {
@@ -197,12 +256,15 @@
             }
             else
             {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[CHECKOUT] Erro na resposta da API: {errorContent}");
                 mensagemErro = "Erro ao processar pagamento. Por favor, verifique os dados e tente novamente.";
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Erro ao processar pagamento: {ex.Message}");
+            Console.WriteLine($"[CHECKOUT] Erro ao processar pagamento: {ex.Message}");
+            Console.WriteLine($"[CHECKOUT] Stack trace: {ex.StackTrace}");
             mensagemErro = "Erro ao processar pagamento. Por favor, tente novamente.";
         }
         finally

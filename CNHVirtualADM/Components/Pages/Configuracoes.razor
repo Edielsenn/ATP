@@ -1,5 +1,7 @@
 @page "/configuracoes"
 @rendermode InteractiveServer
+@inject ApiService ApiService
+@inject IJSRuntime JS
 
 <PageTitle>Configurações - CNH Virtual Admin</PageTitle>
 
@@ -16,21 +18,21 @@
             <div class="config-icon">🔐</div>
             <h3>Autenticação</h3>
             <p>Configurações de login e segurança</p>
-            <button class="btn-config">Configurar</button>
+            <button class="btn-config" @onclick="OpenAuthConfig">Configurar</button>
         </div>
 
         <div class="config-card">
             <div class="config-icon">💳</div>
             <h3>ASAAS Integration</h3>
             <p>Chaves de API e configurações de pagamento</p>
-            <button class="btn-config">Configurar</button>
+            <button class="btn-config" @onclick="OpenAsaasConfig">Configurar</button>
         </div>
 
         <div class="config-card">
             <div class="config-icon">📧</div>
             <h3>Email</h3>
             <p>Configurações SMTP e templates</p>
-            <button class="btn-config">Configurar</button>
+            <button class="btn-config" @onclick="OpenEmailConfig">Configurar</button>
         </div>
 
         <div class="config-card">
@@ -44,7 +46,7 @@
             <div class="config-icon">🔔</div>
             <h3>Webhooks</h3>
             <p>URLs e eventos de webhooks</p>
-            <button class="btn-config">Configurar</button>
+            <button class="btn-config" @onclick="OpenWebhooksConfig">Configurar</button>
         </div>
 
         <div class="config-card">
@@ -55,6 +57,540 @@
         </div>
     </div>
 </div>
+
+@if (showAsaasModal)
+{
+    <div class="modal-overlay" @onclick="CloseAsaasConfig">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Configuração ASAAS</h2>
+                <button class="btn-close" @onclick="CloseAsaasConfig">×</button>
+            </div>
+
+            <div class="modal-body">
+                @if (isLoading)
+                {
+                    <p>Carregando...</p>
+                }
+                else if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-error">@errorMessage</div>
+                }
+                else if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success">@successMessage</div>
+                }
+
+                <div class="form-group">
+                    <label>API Key ASAAS</label>
+                    <input type="text"
+                           class="form-control"
+                           @bind="asaasApiKey"
+                           placeholder="$aact_..." />
+                    <small class="form-text">Chave de API de produção ou sandbox do ASAAS</small>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" @bind="isAsaasSandbox" />
+                        Modo Sandbox (Testes)
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseAsaasConfig">Cancelar</button>
+                <button class="btn btn-primary" @onclick="SaveAsaasConfig" disabled="@isLoading">
+                    @(isLoading ? "Salvando..." : "Salvar")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showAuthModal)
+{
+    <div class="modal-overlay" @onclick="CloseAuthModal">
+        <div class="modal-content modal-large" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Gerenciamento de Usuários</h2>
+                <button class="btn-close" @onclick="CloseAuthModal">×</button>
+            </div>
+
+            <div class="modal-body">
+                @if (!showUserForm)
+                {
+                    <div class="users-header">
+                        <h3>Usuários Administrativos</h3>
+                        <button class="btn btn-primary" @onclick="OpenNewUserForm">➕ Novo Usuário</button>
+                    </div>
+
+                    @if (isLoadingUsers)
+                    {
+                        <p>Carregando usuários...</p>
+                    }
+                    else if (adminUsers.Any())
+                    {
+                        <div class="users-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Criado em</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var user in adminUsers)
+                                    {
+                                        <tr class="@(!user.Ativo ? "inactive-row" : "")">
+                                            <td>@user.Nome</td>
+                                            <td>@user.Email</td>
+                                            <td>
+                                                <span class="status-badge @(user.Ativo ? "active" : "inactive")">
+                                                    @(user.Ativo ? "Ativo" : "Inativo")
+                                                </span>
+                                            </td>
+                                            <td>@user.DataCriacao.ToString("dd/MM/yyyy")</td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn-icon" @onclick="() => OpenEditUserForm(user)" title="Editar">✏️</button>
+                                                    <button class="btn-icon" @onclick="() => ToggleUserStatus(user.Id)" title="@(user.Ativo ? "Desativar" : "Ativar")">
+                                                        @(user.Ativo ? "🔴" : "🟢")
+                                                    </button>
+                                                    <button class="btn-icon" @onclick="() => DeleteUser(user.Id)" title="Excluir">🗑️</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-users">
+                            <p>Nenhum usuário cadastrado</p>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <!-- User Form -->
+                    <div class="user-form">
+                        <h3>@(isEditingUser ? "Editar Usuário" : "Novo Usuário")</h3>
+
+                        @if (!string.IsNullOrEmpty(userFormError))
+                        {
+                            <div class="alert alert-error">@userFormError</div>
+                        }
+
+                        <div class="form-group">
+                            <label>Nome Completo *</label>
+                            <input type="text" class="form-control" @bind="userForm.Nome" placeholder="Nome do usuário" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" class="form-control" @bind="userForm.Email" placeholder="email@exemplo.com" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>@(isEditingUser ? "Nova Senha (deixe em branco para não alterar)" : "Senha *")</label>
+                            <input type="password" class="form-control" @bind="userForm.Senha" placeholder="********" />
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(userForm.Senha))
+                        {
+                            <div class="form-group">
+                                <label>Confirmar Senha *</label>
+                                <input type="password" class="form-control" @bind="userForm.ConfirmarSenha" placeholder="********" />
+                            </div>
+                        }
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" @bind="userForm.Ativo" />
+                                <span>Usuário Ativo</span>
+                            </label>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="btn btn-secondary" @onclick="CloseUserForm">Cancelar</button>
+                            <button class="btn btn-primary" @onclick="SaveUser" disabled="@isSavingUser">
+                                @(isSavingUser ? "Salvando..." : "Salvar")
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@if (showWebhooksModal)
+{
+    <div class="modal-overlay" @onclick="CloseWebhooksModal">
+        <div class="modal-content modal-large" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Gerenciamento de Webhooks</h2>
+                <button class="btn-close" @onclick="CloseWebhooksModal">×</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Split ASAAS Configuration -->
+                <div class="config-section">
+                    <h3>🔗 Split ASAAS</h3>
+                    <p class="section-description">Configure como os pagamentos serão divididos entre diferentes carteiras</p>
+
+                    @if (!string.IsNullOrEmpty(splitFormError))
+                    {
+                        <div class="alert alert-error">@splitFormError</div>
+                    }
+                    @if (!string.IsNullOrEmpty(splitFormSuccess))
+                    {
+                        <div class="alert alert-success">@splitFormSuccess</div>
+                    }
+
+                    <div class="form-group">
+                        <label>Wallet ID Principal</label>
+                        <input type="text" class="form-control" @bind="splitWalletId" placeholder="wallet_id_aqui" />
+                        <small class="form-text">ID da carteira que receberá a divisão dos pagamentos</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Percentual de Split (%)</label>
+                            <input type="number" step="0.01" class="form-control" @bind="splitPercentage" placeholder="0.00" />
+                        </div>
+                        <div class="form-group">
+                            <label>Valor Fixo de Split (R$)</label>
+                            <input type="number" step="0.01" class="form-control" @bind="splitFixedValue" placeholder="0.00" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" @bind="splitEnabled" />
+                            <span>Split Habilitado</span>
+                        </label>
+                    </div>
+
+                    <button class="btn btn-primary" @onclick="SaveSplitConfig" disabled="@isSavingSplit">
+                        @(isSavingSplit ? "Salvando..." : "Salvar Split")
+                    </button>
+                </div>
+
+                <hr class="section-divider" />
+
+                <!-- Webhooks List/Form -->
+                @if (!showWebhookForm)
+                {
+                    <div class="webhooks-header">
+                        <h3>📡 Subscrições de Webhooks</h3>
+                        <button class="btn btn-primary" @onclick="OpenNewWebhookForm">➕ Novo Webhook</button>
+                    </div>
+
+                    @if (isLoadingWebhooks)
+                    {
+                        <p>Carregando webhooks...</p>
+                    }
+                    else if (webhooks.Any())
+                    {
+                        <div class="webhooks-list">
+                            @foreach (var webhook in webhooks)
+                            {
+                                <div class="webhook-item @(!webhook.Ativo ? "inactive" : "")">
+                                    <div class="webhook-header-item">
+                                        <div>
+                                            <h4>@webhook.Nome</h4>
+                                            <p class="webhook-url">@webhook.Url</p>
+                                            <span class="status-badge @(webhook.Ativo ? "active" : "inactive")">
+                                                @(webhook.Ativo ? "Ativo" : "Inativo")
+                                            </span>
+                                        </div>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon" @onclick="() => OpenEditWebhookForm(webhook)" title="Editar">✏️</button>
+                                            <button class="btn-icon" @onclick="() => ToggleWebhookStatus(webhook.Id)" title="@(webhook.Ativo ? "Desativar" : "Ativar")">
+                                                @(webhook.Ativo ? "🔴" : "🟢")
+                                            </button>
+                                            <button class="btn-icon" @onclick="() => DeleteWebhook(webhook.Id)" title="Excluir">🗑️</button>
+                                        </div>
+                                    </div>
+                                    <div class="webhook-events">
+                                        <strong>Eventos:</strong> @GetEventosText(webhook.Eventos)
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-webhooks">
+                            <p>Nenhum webhook cadastrado</p>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <!-- Webhook Form -->
+                    <div class="webhook-form">
+                        <h3>@(isEditingWebhook ? "Editar Webhook" : "Novo Webhook")</h3>
+
+                        @if (!string.IsNullOrEmpty(webhookFormError))
+                        {
+                            <div class="alert alert-error">@webhookFormError</div>
+                        }
+
+                        <div class="form-group">
+                            <label>Nome *</label>
+                            <input type="text" class="form-control" @bind="webhookForm.Nome" placeholder="Nome descritivo" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>URL do Webhook *</label>
+                            <input type="url" class="form-control" @bind="webhookForm.Url" placeholder="https://exemplo.com/webhook" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Secret (opcional)</label>
+                            <input type="text" class="form-control" @bind="webhookForm.Secret" placeholder="Chave secreta para validação" />
+                            <small class="form-text">Usado para validar a origem do webhook</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Eventos</label>
+                            <div class="eventos-checkboxes">
+                                @foreach (var evt in eventosDisponiveis)
+                                {
+                                    <label class="checkbox-label">
+                                        <input type="checkbox"
+                                               checked="@IsEventoSelecionado(evt.Value)"
+                                               @onchange="e => ToggleEvento(evt.Value, (bool)e.Value!)" />
+                                        <span>@evt.Key</span>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" @bind="webhookForm.Ativo" />
+                                <span>Webhook Ativo</span>
+                            </label>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="btn btn-secondary" @onclick="CloseWebhookForm">Cancelar</button>
+                            <button class="btn btn-primary" @onclick="SaveWebhook" disabled="@isSavingWebhook">
+                                @(isSavingWebhook ? "Salvando..." : "Salvar")
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@if (showEmailModal)
+{
+    <div class="modal-overlay" @onclick="CloseEmailModal">
+        <div class="modal-content modal-large" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Configurações de Email</h2>
+                <button class="btn-close" @onclick="CloseEmailModal">×</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- SMTP Configuration -->
+                <div class="config-section">
+                    <h3>📧 Configuração SMTP</h3>
+                    <p class="section-description">Configure o servidor de email para envio de mensagens</p>
+
+                    @if (!string.IsNullOrEmpty(smtpFormError))
+                    {
+                        <div class="alert alert-error">@smtpFormError</div>
+                    }
+                    @if (!string.IsNullOrEmpty(smtpFormSuccess))
+                    {
+                        <div class="alert alert-success">@smtpFormSuccess</div>
+                    }
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Servidor SMTP (Host) *</label>
+                            <input type="text" class="form-control" @bind="smtpHost" placeholder="smtp.gmail.com" />
+                        </div>
+                        <div class="form-group">
+                            <label>Porta *</label>
+                            <input type="number" class="form-control" @bind="smtpPort" placeholder="587" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Usuário / Email *</label>
+                            <input type="text" class="form-control" @bind="smtpUsername" placeholder="seu-email@gmail.com" />
+                        </div>
+                        <div class="form-group">
+                            <label>Senha *</label>
+                            <input type="password" class="form-control" @bind="smtpPassword" placeholder="********" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email Remetente</label>
+                            <input type="email" class="form-control" @bind="smtpFromEmail" placeholder="noreply@cnhvirtual.com" />
+                            <small class="form-text">Se vazio, usará o usuário/email</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Nome do Remetente</label>
+                            <input type="text" class="form-control" @bind="smtpFromName" placeholder="CNH Virtual" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" @bind="smtpUseSsl" />
+                            <span>Usar SSL/TLS</span>
+                        </label>
+                    </div>
+
+                    <div class="form-actions-inline">
+                        <button class="btn btn-primary" @onclick="SaveSmtpConfig" disabled="@isSavingSmtp">
+                            @(isSavingSmtp ? "Salvando..." : "Salvar Configuração")
+                        </button>
+                        <button class="btn btn-secondary" @onclick="ShowTestEmailDialog" disabled="@isSavingSmtp">
+                            🧪 Testar Envio
+                        </button>
+                    </div>
+
+                    @if (showTestEmailDialog)
+                    {
+                        <div class="test-email-section">
+                            <h4>Testar Configuração SMTP</h4>
+                            <div class="form-group">
+                                <label>Email para Teste</label>
+                                <input type="email" class="form-control" @bind="testEmail" placeholder="seu-email@exemplo.com" />
+                            </div>
+                            <button class="btn btn-primary" @onclick="TestSmtpConfig" disabled="@isTestingSmtp">
+                                @(isTestingSmtp ? "Enviando..." : "Enviar Email de Teste")
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                <hr class="section-divider" />
+
+                <!-- Email Templates -->
+                @if (!showTemplateForm)
+                {
+                    <div class="templates-header">
+                        <h3>📝 Templates de Email</h3>
+                        <button class="btn btn-primary" @onclick="OpenNewTemplateForm">➕ Novo Template</button>
+                    </div>
+
+                    @if (isLoadingTemplates)
+                    {
+                        <p>Carregando templates...</p>
+                    }
+                    else if (emailTemplates.Any())
+                    {
+                        <div class="templates-list">
+                            @foreach (var template in emailTemplates)
+                            {
+                                <div class="template-item @(!template.Ativo ? "inactive" : "")">
+                                    <div class="template-header">
+                                        <div>
+                                            <h4>@template.Nome</h4>
+                                            <p class="template-code">@template.Codigo</p>
+                                            <p class="template-subject">@template.Assunto</p>
+                                            <span class="status-badge @(template.Ativo ? "active" : "inactive")">
+                                                @(template.Ativo ? "Ativo" : "Inativo")
+                                            </span>
+                                        </div>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon" @onclick="() => OpenEditTemplateForm(template)" title="Editar">✏️</button>
+                                            @if (template.Codigo != "CREDENCIAIS_ACESSO" && template.Codigo != "BEM_VINDO")
+                                            {
+                                                <button class="btn-icon" @onclick="() => DeleteTemplate(template.Id)" title="Excluir">🗑️</button>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-templates">
+                            <p>Nenhum template cadastrado</p>
+                            <button class="btn btn-primary" @onclick="InitDefaultTemplates">
+                                Criar Templates Padrão
+                            </button>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <!-- Template Form -->
+                    <div class="template-form">
+                        <h3>@(isEditingTemplate ? "Editar Template" : "Novo Template")</h3>
+
+                        @if (!string.IsNullOrEmpty(templateFormError))
+                        {
+                            <div class="alert alert-error">@templateFormError</div>
+                        }
+
+                        <div class="form-group">
+                            <label>Nome *</label>
+                            <input type="text" class="form-control" @bind="templateForm.Nome" placeholder="Nome descritivo" />
+                        </div>
+
+                        @if (!isEditingTemplate)
+                        {
+                            <div class="form-group">
+                                <label>Código *</label>
+                                <input type="text" class="form-control" @bind="templateForm.Codigo" placeholder="CODIGO_TEMPLATE" />
+                                <small class="form-text">Identificador único (ex: CREDENCIAIS_ACESSO)</small>
+                            </div>
+                        }
+
+                        <div class="form-group">
+                            <label>Assunto *</label>
+                            <input type="text" class="form-control" @bind="templateForm.Assunto" placeholder="Assunto do email" />
+                            <small class="form-text">Variáveis: {{NOME_CLIENTE}}, {{CPF}}, {{SENHA}}</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Corpo HTML *</label>
+                            <textarea class="form-control" @bind="templateForm.CorpoHtml" rows="10" placeholder="<html>...</html>"></textarea>
+                            <small class="form-text">Variáveis disponíveis: {{NOME_CLIENTE}}, {{CPF}}, {{SENHA}}, {{URL_ACESSO}}</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" @bind="templateForm.Ativo" />
+                                <span>Template Ativo</span>
+                            </label>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="btn btn-secondary" @onclick="CloseTemplateForm">Cancelar</button>
+                            <button class="btn btn-primary" @onclick="SaveTemplate" disabled="@isSavingTemplate">
+                                @(isSavingTemplate ? "Salvando..." : "Salvar")
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
 
 <style>
     .page-container {
@@ -129,8 +665,1501 @@
     .btn-config:hover {
         background: #0066c2;
     }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+        padding: 24px;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 24px;
+        color: #333;
+    }
+
+    .btn-close {
+        background: none;
+        border: none;
+        font-size: 32px;
+        color: #999;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        line-height: 1;
+    }
+
+    .btn-close:hover {
+        color: #333;
+    }
+
+    .modal-body {
+        padding: 24px;
+    }
+
+    .modal-footer {
+        padding: 24px;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0081f2;
+    }
+
+    .form-text {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+    }
+
+    .alert-error {
+        background: #fee;
+        color: #c33;
+        border: 1px solid #fcc;
+    }
+
+    .alert-success {
+        background: #efe;
+        color: #3c3;
+        border: 1px solid #cfc;
+    }
+
+    .btn {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-primary {
+        background: #0081f2;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #0066c2;
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .btn-secondary {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .btn-secondary:hover {
+        background: #e0e0e0;
+    }
+
+    /* Auth Modal Styles */
+    .modal-large {
+        max-width: 900px;
+    }
+
+    .users-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .users-header h3 {
+        margin: 0;
+        font-size: 20px;
+        color: #333;
+    }
+
+    .users-table {
+        overflow-x: auto;
+    }
+
+    .users-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .users-table th {
+        text-align: left;
+        padding: 12px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .users-table td {
+        padding: 12px;
+        border-bottom: 1px solid #dee2e6;
+        font-size: 14px;
+    }
+
+    .users-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    .inactive-row {
+        opacity: 0.6;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .status-badge.active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-badge.inactive {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .btn-icon:hover {
+        background: #f0f0f0;
+    }
+
+    .empty-users {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+    }
+
+    .user-form {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .user-form h3 {
+        margin: 0 0 24px 0;
+        font-size: 20px;
+        color: #333;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 24px;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    /* Webhooks Modal Styles */
+    .config-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+    }
+
+    .config-section h3 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+        color: #333;
+    }
+
+    .section-description {
+        margin: 0 0 20px 0;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .section-divider {
+        border: none;
+        border-top: 2px solid #e9ecef;
+        margin: 32px 0;
+    }
+
+    .webhooks-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .webhooks-header h3 {
+        margin: 0;
+        font-size: 18px;
+        color: #333;
+    }
+
+    .webhooks-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .webhook-item {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 16px;
+        transition: all 0.3s;
+    }
+
+    .webhook-item:hover {
+        border-color: #0081f2;
+    }
+
+    .webhook-item.inactive {
+        opacity: 0.6;
+    }
+
+    .webhook-header-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+
+    .webhook-header-item h4 {
+        margin: 0 0 4px 0;
+        font-size: 16px;
+        color: #333;
+    }
+
+    .webhook-url {
+        margin: 0 0 8px 0;
+        color: #666;
+        font-size: 13px;
+        font-family: monospace;
+        word-break: break-all;
+    }
+
+    .webhook-events {
+        font-size: 13px;
+        color: #666;
+        padding-top: 12px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .webhook-events strong {
+        color: #333;
+    }
+
+    .empty-webhooks {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+    }
+
+    .webhook-form {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .webhook-form h3 {
+        margin: 0 0 24px 0;
+        font-size: 18px;
+        color: #333;
+    }
+
+    .eventos-checkboxes {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    /* Email Modal Styles */
+    .form-actions-inline {
+        display: flex;
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .test-email-section {
+        background: #e3f2fd;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        border-left: 4px solid #2196f3;
+    }
+
+    .test-email-section h4 {
+        margin: 0 0 16px 0;
+        color: #1976d2;
+        font-size: 16px;
+    }
+
+    .templates-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .templates-header h3 {
+        margin: 0;
+        font-size: 18px;
+        color: #333;
+    }
+
+    .templates-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .template-item {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 16px;
+        transition: all 0.3s;
+    }
+
+    .template-item:hover {
+        border-color: #0081f2;
+    }
+
+    .template-item.inactive {
+        opacity: 0.6;
+    }
+
+    .template-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .template-header h4 {
+        margin: 0 0 4px 0;
+        font-size: 16px;
+        color: #333;
+    }
+
+    .template-code {
+        margin: 0 0 4px 0;
+        font-family: monospace;
+        font-size: 12px;
+        color: #666;
+        background: #f8f9fa;
+        padding: 2px 8px;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    .template-subject {
+        margin: 8px 0;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .empty-templates {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+    }
+
+    .template-form {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .template-form h3 {
+        margin: 0 0 24px 0;
+        font-size: 18px;
+        color: #333;
+    }
+
+    .template-form textarea {
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+    }
 </style>
 
 @code {
-    // TODO: Implementar páginas de configuração específicas
+    // ASAAS
+    private bool showAsaasModal = false;
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private string asaasApiKey = string.Empty;
+    private bool isAsaasSandbox = false;
+
+    // Auth/Users
+    private bool showAuthModal = false;
+    private bool showUserForm = false;
+    private bool isEditingUser = false;
+    private bool isLoadingUsers = false;
+    private bool isSavingUser = false;
+    private string userFormError = string.Empty;
+    private List<AdminUserDto> adminUsers = new();
+    private AdminUserFormDto userForm = new();
+
+    // Webhooks
+    private bool showWebhooksModal = false;
+    private bool showWebhookForm = false;
+    private bool isEditingWebhook = false;
+    private bool isLoadingWebhooks = false;
+    private bool isSavingWebhook = false;
+    private string webhookFormError = string.Empty;
+    private List<WebhookDto> webhooks = new();
+    private WebhookFormDto webhookForm = new();
+    private List<string> eventosSelecionados = new();
+    private Dictionary<string, string> eventosDisponiveis = new()
+    {
+        { "Pagamento Recebido", "PAYMENT_RECEIVED" },
+        { "Pagamento Confirmado", "PAYMENT_CONFIRMED" },
+        { "Pagamento Cancelado", "PAYMENT_DELETED" },
+        { "Pagamento Vencido", "PAYMENT_OVERDUE" },
+        { "Assinatura Criada", "SUBSCRIPTION_CREATED" },
+        { "Assinatura Ativada", "SUBSCRIPTION_ACTIVATED" },
+        { "Assinatura Cancelada", "SUBSCRIPTION_DELETED" }
+    };
+
+    // Split ASAAS
+    private bool isSavingSplit = false;
+    private string splitFormError = string.Empty;
+    private string splitFormSuccess = string.Empty;
+    private string splitWalletId = string.Empty;
+    private decimal? splitPercentage;
+    private decimal? splitFixedValue;
+    private bool splitEnabled = false;
+
+    // Email
+    private bool showEmailModal = false;
+    private bool isSavingSmtp = false;
+    private bool isTestingSmtp = false;
+    private bool showTestEmailDialog = false;
+    private string smtpFormError = string.Empty;
+    private string smtpFormSuccess = string.Empty;
+    private string smtpHost = string.Empty;
+    private string smtpPort = "587";
+    private string smtpUsername = string.Empty;
+    private string smtpPassword = string.Empty;
+    private string smtpFromEmail = string.Empty;
+    private string smtpFromName = "CNH Virtual";
+    private bool smtpUseSsl = true;
+    private string testEmail = string.Empty;
+
+    // Email Templates
+    private bool showTemplateForm = false;
+    private bool isEditingTemplate = false;
+    private bool isLoadingTemplates = false;
+    private bool isSavingTemplate = false;
+    private string templateFormError = string.Empty;
+    private List<EmailTemplateDto> emailTemplates = new();
+    private EmailTemplateFormDto templateForm = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsaasConfig();
+    }
+
+    private async Task LoadAsaasConfig()
+    {
+        try
+        {
+            var config = await ApiService.GetAsync<AsaasConfigResponse>("/api/configuracoes/asaas");
+            if (config != null)
+            {
+                asaasApiKey = config.ApiKey ?? string.Empty;
+                isAsaasSandbox = config.IsSandbox;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao carregar config ASAAS: {ex.Message}");
+            // Se não existir config ainda, deixa vazio
+        }
+    }
+
+    private void OpenAsaasConfig()
+    {
+        showAsaasModal = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+    }
+
+    private void CloseAsaasConfig()
+    {
+        showAsaasModal = false;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+    }
+
+    private async Task SaveAsaasConfig()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(asaasApiKey))
+            {
+                errorMessage = "Por favor, informe a chave da API";
+                return;
+            }
+
+            var request = new AsaasConfigRequest
+            {
+                ApiKey = asaasApiKey.Trim(),
+                IsSandbox = isAsaasSandbox
+            };
+
+            var response = await ApiService.PostAsync<AsaasConfigRequest, object>("/api/configuracoes/asaas", request);
+
+            if (response != null)
+            {
+                successMessage = "Configuração salva com sucesso!";
+                await Task.Delay(1500);
+                CloseAsaasConfig();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao salvar: {ex.Message}");
+            errorMessage = "Erro ao salvar configuração. Tente novamente.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Auth/Users methods
+    private async Task OpenAuthConfig()
+    {
+        showAuthModal = true;
+        showUserForm = false;
+        await LoadAdminUsers();
+    }
+
+    private void CloseAuthModal()
+    {
+        showAuthModal = false;
+        showUserForm = false;
+        userForm = new();
+    }
+
+    private async Task LoadAdminUsers()
+    {
+        try
+        {
+            isLoadingUsers = true;
+            Console.WriteLine("[CONFIG] Carregando usuários...");
+
+            adminUsers = await ApiService.GetAsync<List<AdminUserDto>>("/api/adminusers") ?? new List<AdminUserDto>();
+
+            Console.WriteLine($"[CONFIG] {adminUsers.Count} usuários carregados");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao carregar usuários: {ex.Message}");
+            adminUsers = new List<AdminUserDto>();
+        }
+        finally
+        {
+            isLoadingUsers = false;
+        }
+    }
+
+    private void OpenNewUserForm()
+    {
+        userForm = new AdminUserFormDto { Ativo = true };
+        isEditingUser = false;
+        showUserForm = true;
+        userFormError = string.Empty;
+    }
+
+    private void OpenEditUserForm(AdminUserDto user)
+    {
+        userForm = new AdminUserFormDto
+        {
+            Id = user.Id,
+            Nome = user.Nome,
+            Email = user.Email,
+            Ativo = user.Ativo,
+            Senha = string.Empty,
+            ConfirmarSenha = string.Empty
+        };
+        isEditingUser = true;
+        showUserForm = true;
+        userFormError = string.Empty;
+    }
+
+    private void CloseUserForm()
+    {
+        showUserForm = false;
+        userForm = new();
+        userFormError = string.Empty;
+    }
+
+    private async Task SaveUser()
+    {
+        try
+        {
+            userFormError = string.Empty;
+
+            // Validações
+            if (string.IsNullOrWhiteSpace(userForm.Nome))
+            {
+                userFormError = "Nome é obrigatório";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(userForm.Email))
+            {
+                userFormError = "Email é obrigatório";
+                return;
+            }
+
+            if (!isEditingUser && string.IsNullOrWhiteSpace(userForm.Senha))
+            {
+                userFormError = "Senha é obrigatória para novo usuário";
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(userForm.Senha))
+            {
+                if (userForm.Senha.Length < 6)
+                {
+                    userFormError = "Senha deve ter no mínimo 6 caracteres";
+                    return;
+                }
+
+                if (userForm.Senha != userForm.ConfirmarSenha)
+                {
+                    userFormError = "As senhas não conferem";
+                    return;
+                }
+            }
+
+            isSavingUser = true;
+
+            if (isEditingUser)
+            {
+                Console.WriteLine($"[CONFIG] Atualizando usuário {userForm.Id}...");
+                var updateRequest = new
+                {
+                    userForm.Nome,
+                    userForm.Email,
+                    NovaSenha = userForm.Senha,
+                    userForm.Ativo
+                };
+                await ApiService.PutAsync<object, object>($"/api/adminusers/{userForm.Id}", updateRequest);
+            }
+            else
+            {
+                Console.WriteLine("[CONFIG] Criando novo usuário...");
+                var createRequest = new
+                {
+                    userForm.Nome,
+                    userForm.Email,
+                    Senha = userForm.Senha,
+                    userForm.Ativo
+                };
+                await ApiService.PostAsync<object, object>("/api/adminusers", createRequest);
+            }
+
+            Console.WriteLine("[CONFIG] Usuário salvo, recarregando lista...");
+            await LoadAdminUsers();
+            CloseUserForm();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao salvar usuário: {ex.Message}");
+            userFormError = "Erro ao salvar usuário. Verifique os dados e tente novamente.";
+        }
+        finally
+        {
+            isSavingUser = false;
+        }
+    }
+
+    private async Task ToggleUserStatus(int id)
+    {
+        try
+        {
+            Console.WriteLine($"[CONFIG] Alternando status do usuário {id}");
+            await ApiService.PutAsync<object, object>($"/api/adminusers/{id}/toggle-status", null);
+            await LoadAdminUsers();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao alternar status: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Não foi possível alterar o status do usuário.");
+        }
+    }
+
+    private async Task DeleteUser(int id)
+    {
+        try
+        {
+            var confirmed = await JS.InvokeAsync<bool>("confirm", "Tem certeza que deseja excluir este usuário?");
+            if (!confirmed) return;
+
+            Console.WriteLine($"[CONFIG] Deletando usuário {id}");
+            await ApiService.DeleteAsync($"/api/adminusers/{id}");
+            await LoadAdminUsers();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao deletar usuário: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Não foi possível excluir o usuário. Verifique se não é o último usuário ativo.");
+        }
+    }
+
+    // Webhooks methods
+    private async Task OpenWebhooksConfig()
+    {
+        showWebhooksModal = true;
+        showWebhookForm = false;
+        await LoadWebhooks();
+        await LoadSplitConfig();
+    }
+
+    private void CloseWebhooksModal()
+    {
+        showWebhooksModal = false;
+        showWebhookForm = false;
+        webhookForm = new();
+        eventosSelecionados = new();
+    }
+
+    private async Task LoadWebhooks()
+    {
+        try
+        {
+            isLoadingWebhooks = true;
+            Console.WriteLine("[CONFIG] Carregando webhooks...");
+
+            webhooks = await ApiService.GetAsync<List<WebhookDto>>("/api/webhooks/subscriptions") ?? new List<WebhookDto>();
+
+            Console.WriteLine($"[CONFIG] {webhooks.Count} webhooks carregados");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao carregar webhooks: {ex.Message}");
+            webhooks = new List<WebhookDto>();
+        }
+        finally
+        {
+            isLoadingWebhooks = false;
+        }
+    }
+
+    private void OpenNewWebhookForm()
+    {
+        webhookForm = new WebhookFormDto { Ativo = true };
+        eventosSelecionados = new();
+        isEditingWebhook = false;
+        showWebhookForm = true;
+        webhookFormError = string.Empty;
+    }
+
+    private void OpenEditWebhookForm(WebhookDto webhook)
+    {
+        webhookForm = new WebhookFormDto
+        {
+            Id = webhook.Id,
+            Nome = webhook.Nome,
+            Url = webhook.Url,
+            Ativo = webhook.Ativo,
+            Secret = webhook.Secret
+        };
+
+        // Parse eventos
+        try
+        {
+            eventosSelecionados = System.Text.Json.JsonSerializer.Deserialize<List<string>>(webhook.Eventos) ?? new();
+        }
+        catch
+        {
+            eventosSelecionados = new();
+        }
+
+        isEditingWebhook = true;
+        showWebhookForm = true;
+        webhookFormError = string.Empty;
+    }
+
+    private void CloseWebhookForm()
+    {
+        showWebhookForm = false;
+        webhookForm = new();
+        eventosSelecionados = new();
+        webhookFormError = string.Empty;
+    }
+
+    private bool IsEventoSelecionado(string evento)
+    {
+        return eventosSelecionados.Contains(evento);
+    }
+
+    private void ToggleEvento(string evento, bool isChecked)
+    {
+        if (isChecked && !eventosSelecionados.Contains(evento))
+        {
+            eventosSelecionados.Add(evento);
+        }
+        else if (!isChecked && eventosSelecionados.Contains(evento))
+        {
+            eventosSelecionados.Remove(evento);
+        }
+    }
+
+    private string GetEventosText(string eventosJson)
+    {
+        try
+        {
+            var eventos = System.Text.Json.JsonSerializer.Deserialize<List<string>>(eventosJson);
+            if (eventos == null || !eventos.Any())
+                return "Nenhum evento selecionado";
+
+            var nomes = eventos.Select(e => eventosDisponiveis.FirstOrDefault(x => x.Value == e).Key ?? e);
+            return string.Join(", ", nomes);
+        }
+        catch
+        {
+            return "Erro ao carregar eventos";
+        }
+    }
+
+    private async Task SaveWebhook()
+    {
+        try
+        {
+            webhookFormError = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(webhookForm.Nome))
+            {
+                webhookFormError = "Nome é obrigatório";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(webhookForm.Url))
+            {
+                webhookFormError = "URL é obrigatória";
+                return;
+            }
+
+            isSavingWebhook = true;
+
+            var eventosJson = System.Text.Json.JsonSerializer.Serialize(eventosSelecionados);
+
+            var request = new
+            {
+                webhookForm.Nome,
+                webhookForm.Url,
+                Eventos = eventosJson,
+                webhookForm.Ativo,
+                webhookForm.Secret
+            };
+
+            if (isEditingWebhook)
+            {
+                Console.WriteLine($"[CONFIG] Atualizando webhook {webhookForm.Id}...");
+                await ApiService.PutAsync<object, object>($"/api/webhooks/subscriptions/{webhookForm.Id}", request);
+            }
+            else
+            {
+                Console.WriteLine("[CONFIG] Criando novo webhook...");
+                await ApiService.PostAsync<object, object>("/api/webhooks/subscriptions", request);
+            }
+
+            Console.WriteLine("[CONFIG] Webhook salvo, recarregando lista...");
+            await LoadWebhooks();
+            CloseWebhookForm();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao salvar webhook: {ex.Message}");
+            webhookFormError = "Erro ao salvar webhook. Verifique os dados e tente novamente.";
+        }
+        finally
+        {
+            isSavingWebhook = false;
+        }
+    }
+
+    private async Task ToggleWebhookStatus(int id)
+    {
+        try
+        {
+            Console.WriteLine($"[CONFIG] Alternando status do webhook {id}");
+            await ApiService.PutAsync<object, object>($"/api/webhooks/subscriptions/{id}/toggle-status", null);
+            await LoadWebhooks();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao alternar status: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Não foi possível alterar o status do webhook.");
+        }
+    }
+
+    private async Task DeleteWebhook(int id)
+    {
+        try
+        {
+            var confirmed = await JS.InvokeAsync<bool>("confirm", "Tem certeza que deseja excluir este webhook?");
+            if (!confirmed) return;
+
+            Console.WriteLine($"[CONFIG] Deletando webhook {id}");
+            await ApiService.DeleteAsync($"/api/webhooks/subscriptions/{id}");
+            await LoadWebhooks();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao deletar webhook: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Não foi possível excluir o webhook.");
+        }
+    }
+
+    // Split ASAAS methods
+    private async Task LoadSplitConfig()
+    {
+        try
+        {
+            var walletConfig = await ApiService.GetAsync<ConfigValueResponse>("/api/configuracoes/get?key=ASAAS_SPLIT_WALLET_ID");
+            var percentageConfig = await ApiService.GetAsync<ConfigValueResponse>("/api/configuracoes/get?key=ASAAS_SPLIT_PERCENTAGE");
+            var fixedConfig = await ApiService.GetAsync<ConfigValueResponse>("/api/configuracoes/get?key=ASAAS_SPLIT_FIXED_VALUE");
+            var enabledConfig = await ApiService.GetAsync<ConfigValueResponse>("/api/configuracoes/get?key=ASAAS_SPLIT_ENABLED");
+
+            splitWalletId = walletConfig?.Valor ?? string.Empty;
+
+            if (decimal.TryParse(percentageConfig?.Valor, out var pct))
+                splitPercentage = pct;
+
+            if (decimal.TryParse(fixedConfig?.Valor, out var fix))
+                splitFixedValue = fix;
+
+            splitEnabled = enabledConfig?.Valor?.ToLower() == "true";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao carregar config split: {ex.Message}");
+        }
+    }
+
+    private async Task SaveSplitConfig()
+    {
+        try
+        {
+            isSavingSplit = true;
+            splitFormError = string.Empty;
+            splitFormSuccess = string.Empty;
+
+            var configs = new[]
+            {
+                new { Key = "ASAAS_SPLIT_WALLET_ID", Value = splitWalletId ?? string.Empty },
+                new { Key = "ASAAS_SPLIT_PERCENTAGE", Value = splitPercentage?.ToString() ?? "0" },
+                new { Key = "ASAAS_SPLIT_FIXED_VALUE", Value = splitFixedValue?.ToString() ?? "0" },
+                new { Key = "ASAAS_SPLIT_ENABLED", Value = splitEnabled.ToString().ToLower() }
+            };
+
+            foreach (var config in configs)
+            {
+                await ApiService.PostAsync<object, object>("/api/configuracoes/set", config);
+            }
+
+            splitFormSuccess = "Configuração de split salva com sucesso!";
+            await Task.Delay(2000);
+            splitFormSuccess = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao salvar split: {ex.Message}");
+            splitFormError = "Erro ao salvar configuração de split.";
+        }
+        finally
+        {
+            isSavingSplit = false;
+        }
+    }
+
+    // Email methods
+    private async Task OpenEmailConfig()
+    {
+        showEmailModal = true;
+        showTemplateForm = false;
+        await LoadSmtpConfig();
+        await LoadEmailTemplates();
+    }
+
+    private void CloseEmailModal()
+    {
+        showEmailModal = false;
+        showTemplateForm = false;
+        showTestEmailDialog = false;
+        templateForm = new();
+    }
+
+    private async Task LoadSmtpConfig()
+    {
+        try
+        {
+            Console.WriteLine("[CONFIG] Carregando config SMTP...");
+            var config = await ApiService.GetAsync<SmtpConfigDto>("/api/email/smtp-config");
+
+            if (config != null)
+            {
+                smtpHost = config.Host ?? "";
+                smtpPort = config.Port ?? "587";
+                smtpUsername = config.Username ?? "";
+                smtpPassword = config.Password ?? "";
+                smtpFromEmail = config.FromEmail ?? "";
+                smtpFromName = config.FromName ?? "CNH Virtual";
+                smtpUseSsl = config.UseSsl;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao carregar SMTP: {ex.Message}");
+        }
+    }
+
+    private async Task SaveSmtpConfig()
+    {
+        try
+        {
+            isSavingSmtp = true;
+            smtpFormError = string.Empty;
+            smtpFormSuccess = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(smtpPort) ||
+                string.IsNullOrWhiteSpace(smtpUsername) || string.IsNullOrWhiteSpace(smtpPassword))
+            {
+                smtpFormError = "Por favor, preencha todos os campos obrigatórios";
+                return;
+            }
+
+            var request = new
+            {
+                Host = smtpHost,
+                Port = smtpPort,
+                Username = smtpUsername,
+                Password = smtpPassword,
+                FromEmail = smtpFromEmail,
+                FromName = smtpFromName,
+                UseSsl = smtpUseSsl
+            };
+
+            await ApiService.PostAsync<object, object>("/api/email/smtp-config", request);
+            smtpFormSuccess = "Configuração SMTP salva com sucesso!";
+
+            await Task.Delay(2000);
+            smtpFormSuccess = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao salvar SMTP: {ex.Message}");
+            smtpFormError = "Erro ao salvar configuração SMTP.";
+        }
+        finally
+        {
+            isSavingSmtp = false;
+        }
+    }
+
+    private void ShowTestEmailDialog()
+    {
+        showTestEmailDialog = !showTestEmailDialog;
+        if (!showTestEmailDialog)
+        {
+            testEmail = string.Empty;
+        }
+    }
+
+    private async Task TestSmtpConfig()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(testEmail))
+            {
+                smtpFormError = "Por favor, informe um email para teste";
+                return;
+            }
+
+            isTestingSmtp = true;
+            smtpFormError = string.Empty;
+            smtpFormSuccess = string.Empty;
+
+            var result = await ApiService.PostAsync<object, object>("/api/email/test", new { EmailTeste = testEmail });
+
+            if (result != null)
+            {
+                smtpFormSuccess = "Email de teste enviado! Verifique sua caixa de entrada.";
+                showTestEmailDialog = false;
+                testEmail = string.Empty;
+
+                await Task.Delay(3000);
+                smtpFormSuccess = string.Empty;
+            }
+            else
+            {
+                smtpFormError = "Falha ao enviar email de teste. Verifique as configurações.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao testar email: {ex.Message}");
+            smtpFormError = "Erro ao enviar email de teste.";
+        }
+        finally
+        {
+            isTestingSmtp = false;
+        }
+    }
+
+    // Email Templates methods
+    private async Task LoadEmailTemplates()
+    {
+        try
+        {
+            isLoadingTemplates = true;
+            Console.WriteLine("[CONFIG] Carregando templates...");
+
+            emailTemplates = await ApiService.GetAsync<List<EmailTemplateDto>>("/api/email/templates") ?? new List<EmailTemplateDto>();
+
+            Console.WriteLine($"[CONFIG] {emailTemplates.Count} templates carregados");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao carregar templates: {ex.Message}");
+            emailTemplates = new List<EmailTemplateDto>();
+        }
+        finally
+        {
+            isLoadingTemplates = false;
+        }
+    }
+
+    private void OpenNewTemplateForm()
+    {
+        templateForm = new EmailTemplateFormDto { Ativo = true };
+        isEditingTemplate = false;
+        showTemplateForm = true;
+        templateFormError = string.Empty;
+    }
+
+    private async Task OpenEditTemplateForm(EmailTemplateDto template)
+    {
+        try
+        {
+            Console.WriteLine($"[CONFIG] Carregando template {template.Id}...");
+            var detail = await ApiService.GetAsync<EmailTemplateDetailDto>($"/api/email/templates/{template.Id}");
+
+            if (detail != null)
+            {
+                templateForm = new EmailTemplateFormDto
+                {
+                    Id = detail.Id,
+                    Nome = detail.Nome,
+                    Codigo = detail.Codigo,
+                    Assunto = detail.Assunto,
+                    CorpoHtml = detail.CorpoHtml,
+                    CorpoTexto = detail.CorpoTexto,
+                    Ativo = detail.Ativo
+                };
+
+                isEditingTemplate = true;
+                showTemplateForm = true;
+                templateFormError = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao carregar template: {ex.Message}");
+        }
+    }
+
+    private void CloseTemplateForm()
+    {
+        showTemplateForm = false;
+        templateForm = new();
+        templateFormError = string.Empty;
+    }
+
+    private async Task SaveTemplate()
+    {
+        try
+        {
+            templateFormError = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(templateForm.Nome))
+            {
+                templateFormError = "Nome é obrigatório";
+                return;
+            }
+
+            if (!isEditingTemplate && string.IsNullOrWhiteSpace(templateForm.Codigo))
+            {
+                templateFormError = "Código é obrigatório";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(templateForm.Assunto))
+            {
+                templateFormError = "Assunto é obrigatório";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(templateForm.CorpoHtml))
+            {
+                templateFormError = "Corpo HTML é obrigatório";
+                return;
+            }
+
+            isSavingTemplate = true;
+
+            if (isEditingTemplate)
+            {
+                Console.WriteLine($"[CONFIG] Atualizando template {templateForm.Id}...");
+                await ApiService.PutAsync<EmailTemplateFormDto, object>($"/api/email/templates/{templateForm.Id}", templateForm);
+            }
+            else
+            {
+                Console.WriteLine("[CONFIG] Criando novo template...");
+                await ApiService.PostAsync<EmailTemplateFormDto, object>("/api/email/templates", templateForm);
+            }
+
+            await LoadEmailTemplates();
+            CloseTemplateForm();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao salvar template: {ex.Message}");
+            templateFormError = "Erro ao salvar template.";
+        }
+        finally
+        {
+            isSavingTemplate = false;
+        }
+    }
+
+    private async Task DeleteTemplate(int id)
+    {
+        try
+        {
+            var confirmed = await JS.InvokeAsync<bool>("confirm", "Tem certeza que deseja excluir este template?");
+            if (!confirmed) return;
+
+            Console.WriteLine($"[CONFIG] Deletando template {id}");
+            await ApiService.DeleteAsync($"/api/email/templates/{id}");
+            await LoadEmailTemplates();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao deletar template: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Não foi possível excluir o template.");
+        }
+    }
+
+    private async Task InitDefaultTemplates()
+    {
+        try
+        {
+            Console.WriteLine("[CONFIG] Iniciando templates padrão...");
+            await ApiService.PostAsync<object, object>("/api/email/templates/init-defaults", null);
+            await LoadEmailTemplates();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONFIG] Erro ao criar templates padrão: {ex.Message}");
+        }
+    }
+
+    // DTOs
+    public class AsaasConfigRequest
+    {
+        public string ApiKey { get; set; } = string.Empty;
+        public bool IsSandbox { get; set; }
+    }
+
+    public class AsaasConfigResponse
+    {
+        public string ApiKey { get; set; } = string.Empty;
+        public bool IsSandbox { get; set; }
+    }
+
+    public class AdminUserDto
+    {
+        public int Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public bool Ativo { get; set; }
+        public DateTime DataCriacao { get; set; }
+    }
+
+    public class AdminUserFormDto
+    {
+        public int Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Senha { get; set; } = string.Empty;
+        public string ConfirmarSenha { get; set; } = string.Empty;
+        public bool Ativo { get; set; } = true;
+    }
+
+    public class WebhookDto
+    {
+        public int Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public string Eventos { get; set; } = string.Empty;
+        public bool Ativo { get; set; }
+        public string? Secret { get; set; }
+        public DateTime DataCriacao { get; set; }
+    }
+
+    public class WebhookFormDto
+    {
+        public int Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public bool Ativo { get; set; } = true;
+        public string? Secret { get; set; }
+    }
+
+    public class ConfigValueResponse
+    {
+        public string? Valor { get; set; }
+    }
+
+    public class SmtpConfigDto
+    {
+        public string Host { get; set; } = string.Empty;
+        public string Port { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string FromEmail { get; set; } = string.Empty;
+        public string FromName { get; set; } = string.Empty;
+        public bool UseSsl { get; set; } = true;
+    }
+
+    public class EmailTemplateDto
+    {
+        public int Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Codigo { get; set; } = string.Empty;
+        public string Assunto { get; set; } = string.Empty;
+        public string CorpoHtml { get; set; } = string.Empty;
+        public bool Ativo { get; set; }
+        public DateTime DataCriacao { get; set; }
+    }
+
+    public class EmailTemplateFormDto
+    {
+        public int Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Codigo { get; set; } = string.Empty;
+        public string Assunto { get; set; } = string.Empty;
+        public string CorpoHtml { get; set; } = string.Empty;
+        public string? CorpoTexto { get; set; }
+        public bool Ativo { get; set; } = true;
+    }
+
+    public class EmailTemplateDetailDto
+    {
+        public int Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Codigo { get; set; } = string.Empty;
+        public string Assunto { get; set; } = string.Empty;
+        public string CorpoHtml { get; set; } = string.Empty;
+        public string? CorpoTexto { get; set; }
+        public bool Ativo { get; set; }
+        public DateTime DataCriacao { get; set; }
+        public DateTime DataAtualizacao { get; set; }
+    }
 }

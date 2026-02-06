@@ -48,6 +48,7 @@ builder.Services.AddAuthorization();
 // Registro de Services
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<PagamentoService>();
+builder.Services.AddScoped<EmailService>();
 
 builder.Services.AddHttpClient<AsaasService>();
 

@@ -9,6 +9,9 @@ public class Cliente
     public string? CPF { get; set; }
     public DateTime? DataNascimento { get; set; }
 
+    // Autenticação
+    public string? SenhaHash { get; set; }
+
     // Endereço
     public string? CEP { get; set; }
     public string? Endereco { get; set; }

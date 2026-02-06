@@ -49,10 +49,22 @@
         try
         {
             var apiUrl = Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5273";
+            Console.WriteLine($"[PLANOS CLIENTE] Buscando planos em: {apiUrl}/api/planos");
+
             plans = await Http.GetFromJsonAsync<List<Plan>>($"{apiUrl}/api/planos") ?? new();
+
+            Console.WriteLine($"[PLANOS CLIENTE] {plans.Count} planos recebidos da API");
+            if (plans.Any())
+            {
+                foreach (var plan in plans)
+                {
+                    Console.WriteLine($"[PLANOS CLIENTE] - {plan.Nome} (Ativo: {plan.Ativo}, Recursos: {plan.Recursos.Count})");
+                }
+            }
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"[PLANOS CLIENTE] Erro ao buscar planos: {ex.Message}");
             // Em caso de erro, usar dados mockados
             plans = GetMockPlans();
         }
@@ -70,61 +82,64 @@
             {
                 Id = 1,
                 Nome = "Plano Básico",
-                DescricaoCurta = "Ideal para iniciantes",
+                Descricao = "Ideal para iniciantes",
                 Preco = 97.00m,
                 DuracaoDias = 90,
                 Destaque = false,
-                Recursos = new List<PlanResource>
+                Ativo = true,
+                Recursos = new List<string>
                 {
-                    new() { Descricao = "Acesso por 90 dias", Incluido = true },
-                    new() { Descricao = "Todo conteúdo teórico", Incluido = true },
-                    new() { Descricao = "Questões comentadas", Incluido = true },
-                    new() { Descricao = "3 tentativas de simulado", Incluido = true },
-                    new() { Descricao = "Suporte por email", Incluido = true },
-                    new() { Descricao = "Certificado digital", Incluido = true }
+                    "Acesso por 90 dias",
+                    "Todo conteúdo teórico",
+                    "Questões comentadas",
+                    "3 tentativas de simulado",
+                    "Suporte por email",
+                    "Certificado digital"
                 }
             },
             new Plan
             {
                 Id = 2,
                 Nome = "Plano Intermediário",
-                DescricaoCurta = "Mais vendido",
+                Descricao = "Mais vendido",
                 Preco = 197.00m,
                 DuracaoDias = 180,
                 Destaque = true,
-                Recursos = new List<PlanResource>
+                Ativo = true,
+                Recursos = new List<string>
                 {
-                    new() { Descricao = "Acesso por 180 dias", Incluido = true },
-                    new() { Descricao = "Todo conteúdo teórico", Incluido = true },
-                    new() { Descricao = "Questões comentadas", Incluido = true },
-                    new() { Descricao = "Simulados ilimitados", Incluido = true },
-                    new() { Descricao = "Estatísticas de desempenho", Incluido = true },
-                    new() { Descricao = "Suporte prioritário", Incluido = true },
-                    new() { Descricao = "Certificado digital", Incluido = true },
-                    new() { Descricao = "Material em PDF", Incluido = true }
+                    "Acesso por 180 dias",
+                    "Todo conteúdo teórico",
+                    "Questões comentadas",
+                    "Simulados ilimitados",
+                    "Estatísticas de desempenho",
+                    "Suporte prioritário",
+                    "Certificado digital",
+                    "Material em PDF"
                 }
             },
             new Plan
             {
                 Id = 3,
                 Nome = "Plano Premium",
-                DescricaoCurta = "Garantia de aprovação",
+                Descricao = "Garantia de aprovação",
                 Preco = 397.00m,
                 DuracaoDias = 3650,
                 Destaque = false,
-                Recursos = new List<PlanResource>
+                Ativo = true,
+                Recursos = new List<string>
                 {
-                    new() { Descricao = "Acesso vitalício", Incluido = true },
-                    new() { Descricao = "Todo conteúdo teórico", Incluido = true },
-                    new() { Descricao = "Questões comentadas", Incluido = true },
-                    new() { Descricao = "Simulados ilimitados", Incluido = true },
-                    new() { Descricao = "Aulas práticas em vídeo", Incluido = true },
-                    new() { Descricao = "Estatísticas avançadas", Incluido = true },
-                    new() { Descricao = "Suporte VIP 24/7", Incluido = true },
-                    new() { Descricao = "Certificado digital", Incluido = true },
-                    new() { Descricao = "Material completo em PDF", Incluido = true },
-                    new() { Descricao = "Garantia de aprovação", Incluido = true },
-                    new() { Descricao = "Atualizações gratuitas", Incluido = true }
+                    "Acesso vitalício",
+                    "Todo conteúdo teórico",
+                    "Questões comentadas",
+                    "Simulados ilimitados",
+                    "Aulas práticas em vídeo",
+                    "Estatísticas avançadas",
+                    "Suporte VIP 24/7",
+                    "Certificado digital",
+                    "Material completo em PDF",
+                    "Garantia de aprovação",
+                    "Atualizações gratuitas"
                 }
             }
         };
@@ -134,18 +149,13 @@
     {
         public int Id { get; set; }
         public string Nome { get; set; } = "";
-        public string DescricaoCurta { get; set; } = "";
+        public string Descricao { get; set; } = "";
         public decimal Preco { get; set; }
         public decimal? PrecoPromocional { get; set; }
         public int DuracaoDias { get; set; }
         public bool Destaque { get; set; }
-        public List<PlanResource> Recursos { get; set; } = new();
-    }
-
-    public class PlanResource
-    {
-        public string Descricao { get; set; } = "";
-        public bool Incluido { get; set; }
+        public bool Ativo { get; set; }
+        public List<string> Recursos { get; set; } = new();
     }
 }
 

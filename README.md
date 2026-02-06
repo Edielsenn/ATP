@@ -1,189 +1,88 @@
-# CNH Virtual - Plataforma de Vendas de Cursos para CNH
+# CNH Virtual - Sistema de Gestão de Cursos
 
-Sistema completo de vendas de cursos para habilitação (CNH) com landing page moderna, API backend, integração com ASAAS (pagamentos) e painel administrativo.
+Sistema completo para gestão de cursos preparatórios para CNH, desenvolvido com .NET 10.0, Blazor e integração com gateway de pagamento ASAAS.
+
+## 🚀 Tecnologias
+
+### Backend (API)
+- **.NET 10.0** - Framework principal
+- **ASP.NET Core Web API** - API RESTful
+- **Entity Framework Core** - ORM
+- **SQL Server** - Banco de dados
+- **BCrypt.Net** - Criptografia de senhas
+- **JWT Bearer** - Autenticação
+- **Swagger** - Documentação da API
+
+### Frontend
+- **Blazor Server** - Painel Administrativo
+- **Blazor Web** - Landing Page pública
+- **Bootstrap 5** - Framework CSS
+
+### Integrações
+- **ASAAS** - Gateway de pagamento (PIX, Boleto, Cartão)
+- **SMTP** - Envio de emails
 
 ## 📁 Estrutura do Projeto
 
 ```
 CNHVirtual/
-├── database/                    # Scripts SQL do banco de dados
-│   ├── 01_create_database.sql
-│   ├── 02_create_tables.sql
-│   ├── 03_seed_data.sql
-│   └── README.md
-├── CNHVirtual/                  # Frontend Blazor (.NET 10)
-│   ├── Components/
-│   │   ├── Layout/
-│   │   │   ├── HeaderNav.razor
-│   │   │   ├── FooterSection.razor
-│   │   │   ├── Hero.razor
-│   │   │   ├── Features.razor
-│   │   │   ├── PlansSection.razor
-│   │   │   ├── PlanCard.razor
-│   │   │   ├── HowItWorks.razor
-│   │   │   ├── Testimonials.razor
-│   │   │   ├── FAQ.razor
-│   │   │   └── CTA.razor
-│   │   └── Pages/
-│   │       └── Home.razor
-│   ├── wwwroot/
-│   │   └── css/
-│   │       └── app.css
-│   └── Program.cs
-└── APICNHVirtual/              # API Backend (.NET 10)
-    ├── Controllers/            # (A criar)
-    ├── Models/                 # (A criar)
-    ├── Services/               # (A criar)
-    └── Program.cs
+├── CNHVirtualAPI/          # API Backend
+│   ├── Controllers/        # Endpoints da API
+│   ├── Services/          # Lógica de negócio
+│   ├── Models/            # Modelos de dados
+│   ├── Data/              # Contexto do EF Core
+│   └── DTOs/              # Data Transfer Objects
+├── CNHVirtualADM/         # Painel Administrativo (Blazor Server)
+│   ├── Components/        # Componentes Blazor
+│   └── Pages/             # Páginas administrativas
+├── CNHVirtual/            # Landing Page (Blazor Web)
+│   ├── Components/        # Componentes Blazor
+│   └── Pages/             # Páginas públicas
+└── database/              # Scripts SQL
+    ├── 00_setup_completo.sql
+    ├── 01_create_database.sql
+    ├── 02_create_tables.sql
+    ├── 03_seed_data.sql
+    └── 04_migrations_fix.sql
 ```
 
-## 🗄️ Banco de Dados - PNHDigitalDB
+## 🔧 Configuração e Instalação
 
-### Configuração
+### Pré-requisitos
+- .NET SDK 10.0
+- SQL Server 2019+
+- Visual Studio 2022 ou VS Code
 
-1. Abra o SQL Server Management Studio
-2. Execute os scripts na ordem:
+### 1. Configurar Banco de Dados
 
-```sql
--- 1. Criar o banco de dados
-USE master;
-GO
--- Execute: database/01_create_database.sql
-
--- 2. Criar as tabelas
-USE PNHDigitalDB;
-GO
--- Execute: database/02_create_tables.sql
-
--- 3. Inserir dados iniciais
--- Execute: database/03_seed_data.sql
-```
-
-### Credenciais Padrão
-
-- **Email Admin:** admin@cnhvirtual.com
-- **Senha Admin:** Admin@123
-- ⚠️ **ALTERE A SENHA APÓS O PRIMEIRO LOGIN!**
-
-### Tabelas Criadas
-
-- **AdminUsers** - Usuários administradores
-- **Planos** - Planos/cursos disponíveis
-- **PlanoRecursos** - Recursos de cada plano
-- **Clientes** - Dados dos clientes
-- **Pedidos** - Pedidos realizados
-- **Pagamentos** - Pagamentos via ASAAS
-- **Assinaturas** - Controle de acesso aos cursos
-- **WebhookLogs** - Logs de webhooks do ASAAS
-
-### Connection String
-
-```
-Server=localhost;Database=PNHDigitalDB;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True;
-```
-
-## 🎨 Frontend - Blazor (CNHVirtual)
-
-### Tecnologias
-
-- ASP.NET Core 10.0
-- Blazor Server
-- CSS customizado (baseado no modelo fornecido)
-
-### Componentes Criados
-
-✅ **HeaderNav** - Cabeçalho fixo com navegação
-✅ **Hero** - Seção principal com estatísticas
-✅ **Features** - 6 benefícios principais
-✅ **PlansSection** - Exibição de planos (integra com API)
-✅ **PlanCard** - Card individual de plano
-✅ **HowItWorks** - 6 passos do processo
-✅ **Testimonials** - 6 depoimentos de alunos
-✅ **FAQ** - Perguntas frequentes (accordion)
-✅ **CTA** - Call-to-action final
-✅ **FooterSection** - Rodapé completo
-
-### Como Executar
+Execute os scripts SQL na ordem:
 
 ```bash
-cd CNHVirtual
-dotnet restore
-dotnet run
+sqlcmd -S SEU_SERVIDOR -E -i database/00_setup_completo.sql
 ```
 
-Acesse: https://localhost:5001
+Ou execute individualmente:
+1. `01_create_database.sql` - Cria o banco PNHDigitalDB
+2. `02_create_tables.sql` - Cria todas as tabelas
+3. `03_seed_data.sql` - Dados iniciais
+4. `04_migrations_fix.sql` - Migrações e correções
 
-### Configuração
+### 2. Configurar API
 
-Edite `appsettings.json`:
-
-```json
-{
-  "ApiSettings": {
-    "BaseUrl": "https://localhost:7000"
-  }
-}
-```
-
-## 🔧 API Backend - APICNHVirtual
-
-### Status Atual
-
-✅ Projeto criado
-✅ Pacotes instalados:
-- Entity Framework Core 10.0.2
-- SQL Server Provider
-- JWT Authentication (instalando)
-- BCrypt (instalando)
-- Swagger/OpenAPI
-
-### Próximos Passos - API
-
-1. **Criar Models** (Models/)
-   - Plano.cs
-   - Cliente.cs
-   - Pedido.cs
-   - Pagamento.cs
-   - AdminUser.cs
-
-2. **Criar DbContext** (Data/)
-   - ApplicationDbContext.cs
-
-3. **Criar Services** (Services/)
-   - AsaasService.cs (integração ASAAS com split)
-   - PagamentoService.cs
-   - AuthService.cs
-
-4. **Criar Controllers** (Controllers/)
-   - PlanosController.cs
-   - ClientesController.cs
-   - PagamentosController.cs
-   - WebhookController.cs (ASAAS)
-   - AdminController.cs
-
-5. **Configurar** (Program.cs)
-   - CORS
-   - Entity Framework
-   - JWT Authentication
-   - Swagger
-
-### Configuração ASAAS
-
-Edite `appsettings.json`:
+Edite `CNHVirtualAPI/appsettings.json`:
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=PNHDigitalDB;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True;"
+    "DefaultConnection": "Server=SEU_SERVIDOR;Database=PNHDigitalDB;Integrated Security=True;TrustServerCertificate=True;"
   },
   "Asaas": {
-    "ApiKey": "SUA_CHAVE_ASAAS",
-    "Environment": "sandbox",
-    "ApiUrl": "https://sandbox.asaas.com/api/v3",
-    "SplitWalletId": "ID_CARTEIRA_SPLIT"
+    "ApiKey": "SUA_CHAVE_API_ASAAS",
+    "Environment": "production",
+    "ApiUrl": "https://www.asaas.com/api/v3"
   },
   "Jwt": {
-    "Secret": "SUA_CHAVE_JWT_SUPER_SECRETA_AQUI",
+    "Secret": "sua_chave_jwt_super_secreta",
     "Issuer": "CNHVirtualAPI",
     "Audience": "CNHVirtualApp",
     "ExpirationHours": 24
@@ -191,140 +90,133 @@ Edite `appsettings.json`:
 }
 ```
 
-## 💳 Integração ASAAS
-
-### Recursos Suportados
-
-- ✅ Pagamento por Boleto
-- ✅ Pagamento por Cartão de Crédito
-- ✅ Split de Pagamentos (configurável)
-- ✅ Webhooks para notificações
-- ⏳ PIX (futuro)
-
-### Split de Pagamentos
-
-Configure o split no `appsettings.json`:
-
-```json
-{
-  "Asaas": {
-    "SplitWalletId": "ID_DA_SUBCONTA_ASAAS",
-    "SplitPercentage": 10.0
-  }
-}
-```
-
-### Webhooks
-
-Configure no painel do ASAAS para apontar para:
-
-```
-POST https://seu-dominio.com/api/webhook/asaas
-```
-
-Eventos suportados:
-- PAYMENT_CREATED
-- PAYMENT_CONFIRMED
-- PAYMENT_RECEIVED
-- PAYMENT_OVERDUE
-- PAYMENT_DELETED
-- PAYMENT_REFUNDED
-
-## 📊 Painel Administrativo
-
-### Status
-
-⏳ **A ser desenvolvido**
-
-### Funcionalidades Planejadas
-
-- Login com JWT
-- Dashboard de vendas
-- Gerenciamento de planos
-- Visualização de pedidos
-- Controle de pagamentos
-- Listagem de clientes
-- Relatórios e estatísticas
-- Gerenciamento de assinaturas
-
-## 🚀 Deploy
-
-### Frontend Blazor
+### 3. Executar os Projetos
 
 ```bash
+# Terminal 1 - API
+cd CNHVirtualAPI
+dotnet run
+
+# Terminal 2 - Painel Admin
+cd CNHVirtualADM
+dotnet run
+
+# Terminal 3 - Landing Page
 cd CNHVirtual
-dotnet publish -c Release
+dotnet run
 ```
 
-Hospedar em:
-- Azure App Service
-- IIS (Windows Server)
-- Docker
+## 🌐 URLs de Acesso
 
-### API Backend
+- **Landing Page**: http://localhost:5100
+- **Painel Admin**: http://localhost:5296
+- **API**: http://localhost:5273
+- **Swagger**: https://localhost:7000
 
-```bash
-cd APICNHVirtual
-dotnet publish -c Release
-```
+## 👤 Credenciais Padrão
 
-Hospedar em:
-- Azure App Service
-- IIS (Windows Server)
-- Docker
+### Painel Administrativo
+- **Email**: admin@cnhvirtual.com.br
+- **Senha**: Admin@2024
 
-### Banco de Dados
+## 📋 Funcionalidades
 
-- SQL Server local
-- Azure SQL Database
-- SQL Server em VM
+### Landing Page
+- ✅ Apresentação de planos
+- ✅ Formulário de checkout
+- ✅ Pagamento via PIX, Boleto ou Cartão
+- ✅ Páginas de confirmação de pagamento
 
-## 📝 TODO List
+### Painel Administrativo
+- ✅ Dashboard com estatísticas
+- ✅ Gestão de planos e recursos
+- ✅ Visualização de clientes e pedidos
+- ✅ Configurações de email e pagamento
+- ✅ Logs de webhooks
 
-### Prioridade Alta
+### API
+- ✅ Autenticação JWT
+- ✅ CRUD de planos
+- ✅ Processamento de pagamentos
+- ✅ Webhooks do ASAAS
+- ✅ Envio de emails automáticos
+- ✅ Modo de simulação (sem chave API)
 
-- [ ] Completar API Backend (Models, Controllers, Services)
-- [ ] Implementar integração completa com ASAAS
-- [ ] Criar página de Checkout no Blazor
-- [ ] Implementar processamento de pagamentos
-- [ ] Configurar webhooks do ASAAS
+## 🔐 Segurança
 
-### Prioridade Média
+- Senhas criptografadas com BCrypt
+- Autenticação JWT
+- Validação de dados no servidor
+- CORS configurado
+- SQL Injection prevention (EF Core)
 
-- [ ] Criar painel administrativo
-- [ ] Implementar autenticação JWT
-- [ ] Adicionar gerenciamento de planos
-- [ ] Criar relatórios de vendas
+## 🧪 Modo de Simulação
 
-### Prioridade Baixa
+O sistema possui um modo de simulação que permite testar pagamentos sem integração real com o ASAAS:
 
-- [ ] Adicionar suporte a PIX
-- [ ] Implementar sistema de cupons de desconto
-- [ ] Criar área do aluno
-- [ ] Adicionar notificações por email
+1. Deixe o campo `ApiKey` vazio em `appsettings.json`
+2. O sistema automaticamente gerará pagamentos simulados
+3. Útil para desenvolvimento e testes
 
-## 🔒 Segurança
+## 📊 Banco de Dados
 
-### Checklist
+### Principais Tabelas
+- **AdminUsers** - Usuários administrativos
+- **Clientes** - Clientes cadastrados
+- **Planos** - Planos de curso
+- **Pedidos** - Pedidos realizados
+- **Pagamentos** - Pagamentos processados
+- **Assinaturas** - Assinaturas ativas
+- **Configuracoes** - Configurações do sistema
+- **EmailTemplates** - Templates de email
 
-- [ ] Trocar senha padrão do admin
-- [ ] Configurar chave JWT forte
-- [ ] Usar HTTPS em produção
-- [ ] Validar todos os inputs
-- [ ] Sanitizar dados do banco
-- [ ] Implementar rate limiting
-- [ ] Configurar CORS adequadamente
-- [ ] Proteger endpoints sensíveis
-- [ ] Criptografar dados sensíveis
-- [ ] Fazer backup regular do banco
+## 🔄 Integração ASAAS
 
-## 📞 Suporte
+O sistema suporta três formas de pagamento via ASAAS:
 
-Para dúvidas ou suporte:
+1. **PIX** - Pagamento instantâneo com QR Code
+2. **Boleto Bancário** - Compensação em 1-3 dias úteis
+3. **Cartão de Crédito** - Aprovação imediata
 
-- Email: contato@cnhvirtual.com
-- Telefone: (11) 99999-9999
+### Configurar ASAAS
 
-## 📄 Licença
+1. Crie uma conta em https://www.asaas.com
+2. Obtenha sua chave API em Configurações → Integrações
+3. Configure a chave em `appsettings.json`
+4. Configure webhooks apontando para: `https://seu-dominio.com/api/webhook/asaas`
 
-© 2026 CNH Virtual. Todos os direitos reservados.
+## 📧 Configuração de Email
+
+Para habilitar o envio de emails:
+
+1. Acesse o Painel Administrativo
+2. Vá em Configurações → Email
+3. Configure servidor SMTP, porta, usuário e senha
+4. Os templates de email podem ser personalizados
+
+## 🐛 Troubleshooting
+
+### Erro: "Cannot insert NULL into column"
+Execute o script de migrações: `database/04_migrations_fix.sql`
+
+### API não conecta ao banco
+Verifique a connection string em `appsettings.json`
+
+### Webhooks não funcionam
+Verifique se a URL está acessível publicamente e configurada no ASAAS
+
+### Botões de pagamento não respondem
+Certifique-se de que o componente tem `@rendermode="InteractiveServer"`
+
+## 📝 Licença
+
+Este projeto é proprietário. Todos os direitos reservados.
+
+## 👨‍💻 Desenvolvedor
+
+Desenvolvido por Ediel Senn
+
+---
+
+**Versão**: 1.0.0
+**Última atualização**: Fevereiro 2026

@@ -54,6 +54,21 @@
                         </div>
                     }
 
+                    <div class="webhook-status">
+                        @if (webhook.ProcessadoComSucesso)
+                        {
+                            <span class="status-success">✓ Processado com sucesso</span>
+                        }
+                        else
+                        {
+                            <span class="status-error">✗ Erro no processamento</span>
+                            @if (!string.IsNullOrEmpty(webhook.MensagemErro))
+                            {
+                                <p class="error-message">@webhook.MensagemErro</p>
+                            }
+                        }
+                    </div>
+
                     @if (expandedWebhooks.Contains(webhook.Id))
                     {
                         <div class="webhook-payload">
@@ -148,6 +163,24 @@
         font-size: 14px;
         margin-top: 12px;
     }
+    .webhook-status {
+        margin-top: 12px;
+        padding: 12px;
+        border-radius: 6px;
+    }
+    .status-success {
+        color: #388e3c;
+        font-weight: 600;
+    }
+    .status-error {
+        color: #d32f2f;
+        font-weight: 600;
+    }
+    .error-message {
+        margin: 8px 0 0 0;
+        color: #666;
+        font-size: 13px;
+    }
     .webhook-payload {
         margin-top: 16px;
         padding: 16px;
@@ -218,16 +251,72 @@
         try
         {
             isLoading = true;
-            await Task.Delay(500);
-            webhooks = GetMockWebhooks();
+            Console.WriteLine("[WEBHOOKS] Carregando logs...");
+
+            var logs = await ApiService.GetAsync<List<WebhookLogDto>>("/api/webhooks/logs?limit=100");
+
+            if (logs != null && logs.Any())
+            {
+                webhooks = logs.Select(log => new WebhookDto
+                {
+                    Id = log.Id,
+                    Evento = log.Evento,
+                    PaymentId = ExtractPaymentId(log.PayloadJson),
+                    Payload = FormatJson(log.PayloadJson),
+                    DataRecebimento = log.DataRecebimento,
+                    ProcessadoComSucesso = log.ProcessadoComSucesso,
+                    MensagemErro = log.MensagemErro
+                }).ToList();
+
+                Console.WriteLine($"[WEBHOOKS] {webhooks.Count} logs carregados");
+            }
+            else
+            {
+                webhooks = new List<WebhookDto>();
+                Console.WriteLine("[WEBHOOKS] Nenhum log encontrado");
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Erro ao carregar webhooks: {ex.Message}");
+            Console.WriteLine($"[WEBHOOKS] Erro ao carregar: {ex.Message}");
+            webhooks = new List<WebhookDto>();
         }
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private string? ExtractPaymentId(string json)
+    {
+        try
+        {
+            var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("payment", out var payment))
+            {
+                if (payment.TryGetProperty("id", out var id))
+                {
+                    return id.GetString();
+                }
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    private string FormatJson(string json)
+    {
+        try
+        {
+            var doc = System.Text.Json.JsonDocument.Parse(json);
+            return System.Text.Json.JsonSerializer.Serialize(doc, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+        }
+        catch
+        {
+            return json;
         }
     }
 
@@ -250,27 +339,6 @@
         };
     }
 
-    private List<WebhookDto> GetMockWebhooks()
-    {
-        return new List<WebhookDto>
-        {
-            new() {
-                Id = 1,
-                Evento = "PAYMENT_CONFIRMED",
-                PaymentId = "pay_123456789",
-                Payload = "{\n  \"event\": \"PAYMENT_CONFIRMED\",\n  \"payment\": {\n    \"id\": \"pay_123456789\",\n    \"value\": 97.00,\n    \"status\": \"CONFIRMED\"\n  }\n}",
-                DataRecebimento = DateTime.Now.AddMinutes(-30)
-            },
-            new() {
-                Id = 2,
-                Evento = "PAYMENT_CREATED",
-                PaymentId = "pay_987654321",
-                Payload = "{\n  \"event\": \"PAYMENT_CREATED\",\n  \"payment\": {\n    \"id\": \"pay_987654321\",\n    \"value\": 197.00,\n    \"status\": \"PENDING\"\n  }\n}",
-                DataRecebimento = DateTime.Now.AddHours(-2)
-            }
-        };
-    }
-
     public class WebhookDto
     {
         public int Id { get; set; }
@@ -278,5 +346,18 @@
         public string? PaymentId { get; set; }
         public string Payload { get; set; } = string.Empty;
         public DateTime DataRecebimento { get; set; }
+        public bool ProcessadoComSucesso { get; set; }
+        public string? MensagemErro { get; set; }
+    }
+
+    public class WebhookLogDto
+    {
+        public int Id { get; set; }
+        public string Evento { get; set; } = string.Empty;
+        public string PayloadJson { get; set; } = string.Empty;
+        public bool ProcessadoComSucesso { get; set; }
+        public string? MensagemErro { get; set; }
+        public DateTime DataRecebimento { get; set; }
+        public DateTime? DataProcessamento { get; set; }
     }
 }
