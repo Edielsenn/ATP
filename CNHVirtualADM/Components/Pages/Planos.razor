@@ -332,25 +332,16 @@
         try
         {
             isLoading = true;
+            Console.WriteLine("[PLANOS] Carregando planos da API...");
 
-            // Tentar carregar da API real
-            var result = await ApiService.GetAsync<List<PlanoDto>>("/api/planos");
-            if (result != null && result.Any())
-            {
-                planos = result;
-            }
-            else
-            {
-                // Fallback para mock data
-                await Task.Delay(500);
-                planos = GetMockPlanos();
-            }
+            planos = await ApiService.GetAsync<List<PlanoDto>>("/api/planos") ?? new List<PlanoDto>();
+
+            Console.WriteLine($"[PLANOS] {planos.Count} planos carregados");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Erro ao carregar planos: {ex.Message}");
-            // Em caso de erro, usar mock data
-            planos = GetMockPlanos();
+            Console.WriteLine($"[PLANOS] Erro ao carregar: {ex.Message}");
+            planos = new List<PlanoDto>();
         }
         finally
         {
@@ -366,68 +357,21 @@
 
     private async Task ToggleStatus(int id)
     {
-        // TODO: Implementar ativação/desativação via API
-        var plano = planos.FirstOrDefault(p => p.Id == id);
-        if (plano != null)
+        try
         {
-            plano.Ativo = !plano.Ativo;
-            StateHasChanged();
-        }
-    }
+            Console.WriteLine($"[PLANOS] Alternando status do plano {id}");
 
-    private List<PlanoDto> GetMockPlanos()
-    {
-        return new List<PlanoDto>
-        {
-            new() {
-                Id = 1,
-                Nome = "Plano Básico",
-                Descricao = "Ideal para quem está começando",
-                Preco = 97.00m,
-                DuracaoDias = 30,
-                Destaque = false,
-                Ativo = true,
-                Recursos = new List<string> {
-                    "Acesso à plataforma por 30 dias",
-                    "Videoaulas completas",
-                    "Exercícios práticos",
-                    "Suporte via chat"
-                }
-            },
-            new() {
-                Id = 2,
-                Nome = "Plano Intermediário",
-                Descricao = "Mais recursos e tempo",
-                Preco = 197.00m,
-                DuracaoDias = 60,
-                Destaque = true,
-                Ativo = true,
-                Recursos = new List<string> {
-                    "Acesso à plataforma por 60 dias",
-                    "Videoaulas completas",
-                    "Exercícios práticos",
-                    "Simulados ilimitados",
-                    "Suporte prioritário"
-                }
-            },
-            new() {
-                Id = 3,
-                Nome = "Plano Premium",
-                Descricao = "Acesso completo e ilimitado",
-                Preco = 397.00m,
-                DuracaoDias = 90,
-                Destaque = false,
-                Ativo = true,
-                Recursos = new List<string> {
-                    "Acesso à plataforma por 90 dias",
-                    "Videoaulas completas",
-                    "Exercícios práticos",
-                    "Simulados ilimitados",
-                    "Mentoria individual",
-                    "Material em PDF",
-                    "Suporte VIP 24/7"
-                }
+            var response = await ApiService.PutAsync<object, object>($"/api/planos/{id}/toggle-status", null);
+
+            if (response != null)
+            {
+                Console.WriteLine("[PLANOS] Status alterado, recarregando lista...");
+                await LoadPlanos();
             }
-        };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PLANOS] Erro ao alternar status: {ex.Message}");
+        }
     }
 }

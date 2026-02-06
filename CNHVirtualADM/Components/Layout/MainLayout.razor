@@ -2,37 +2,24 @@
 @inject AuthStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 
-<AuthorizeView>
-    <Authorized>
-        <div class="page">
-            <div class="sidebar">
-                <NavMenu />
-            </div>
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
 
-            <main>
-                <div class="top-row px-4">
-                    <div class="user-info">
-                        <span class="user-email">@context.User?.Identity?.Name</span>
-                        <button @onclick="Logout" class="btn-logout">Sair</button>
-                    </div>
-                </div>
-
-                <article class="content px-4">
-                    @Body
-                </article>
-            </main>
-        </div>
-    </Authorized>
-    <NotAuthorized>
-        <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
-            <div style="text-align: center;">
-                <h2>Acesso não autorizado</h2>
-                <p>Você precisa fazer login para acessar esta página.</p>
-                <a href="/login" style="padding: 10px 20px; background: #0081f2; color: white; text-decoration: none; border-radius: 5px;">Ir para Login</a>
+    <main>
+        <div class="top-row px-4">
+            <div class="user-info">
+                <span class="user-email">Admin</span>
+                <a href="/" class="btn-logout">Sair</a>
             </div>
         </div>
-    </NotAuthorized>
-</AuthorizeView>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
@@ -61,17 +48,12 @@
         font-size: 14px;
         cursor: pointer;
         transition: background 0.3s;
+        text-decoration: none;
+        display: inline-block;
     }
 
     .btn-logout:hover {
         background: #d32f2f;
+        color: white;
     }
 </style>
-
-@code {
-    private async Task Logout()
-    {
-        await AuthStateProvider.RemoveTokenAsync();
-        Navigation.NavigateTo("/login", forceLoad: true);
-    }
-}

@@ -1,4 +1,5 @@
 using CNHVirtualAPI.Data;
+using CNHVirtualAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,69 +17,71 @@ public class PlanosController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetPlanos()
+    public async Task<ActionResult<List<PlanoResponse>>> GetPlanos()
     {
-        var planos = await _context.Planos
-            .Include(p => p.Recursos.OrderBy(r => r.Ordem))
-            .Where(p => p.Ativo)
-            .OrderBy(p => p.Ordem)
-            .Select(p => new
-            {
-                p.Id,
-                p.Nome,
-                p.Descricao,
-                p.DescricaoCurta,
-                p.Preco,
-                p.PrecoPromocional,
-                p.DuracaoDias,
-                p.ValidadeDias,
-                p.LimiteTentativas,
-                p.Destaque,
-                p.Ordem,
-                Recursos = p.Recursos.Select(r => new
-                {
-                    r.Id,
-                    r.Descricao,
-                    r.Incluido,
-                    r.Ordem
-                }).ToList()
-            })
-            .ToListAsync();
+        try
+        {
+            var planos = await _context.Planos
+                .Include(p => p.Recursos)
+                .OrderBy(p => p.Ordem)
+                .ToListAsync();
 
-        return Ok(planos);
+            var response = planos.Select(p => new PlanoResponse
+            {
+                Id = p.Id,
+                Nome = p.Nome,
+                Descricao = p.Descricao ?? string.Empty,
+                Preco = p.Preco,
+                PrecoPromocional = p.PrecoPromocional,
+                DuracaoDias = p.DuracaoDias,
+                Destaque = p.Destaque,
+                Ativo = p.Ativo,
+                Recursos = p.Recursos.Where(r => r.Incluido).Select(r => r.Descricao).ToList()
+            }).ToList();
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PLANOS] Erro: {ex.Message}");
+            return StatusCode(500, new { message = "Erro ao buscar planos" });
+        }
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetPlano(int id)
+    [HttpPut("{id}/toggle-status")]
+    public async Task<ActionResult> ToggleStatus(int id)
     {
-        var plano = await _context.Planos
-            .Include(p => p.Recursos.OrderBy(r => r.Ordem))
-            .Where(p => p.Id == id && p.Ativo)
-            .Select(p => new
-            {
-                p.Id,
-                p.Nome,
-                p.Descricao,
-                p.DescricaoCurta,
-                p.Preco,
-                p.PrecoPromocional,
-                p.DuracaoDias,
-                p.ValidadeDias,
-                p.LimiteTentativas,
-                p.Destaque,
-                Recursos = p.Recursos.Select(r => new
-                {
-                    r.Id,
-                    r.Descricao,
-                    r.Incluido,
-                    r.Ordem
-                }).ToList()
-            })
-            .FirstOrDefaultAsync();
+        try
+        {
+            var plano = await _context.Planos.FindAsync(id);
 
-        if (plano == null)
-            return NotFound(new { mensagem = "Plano não encontrado" });
+            if (plano == null)
+                return NotFound(new { message = "Plano não encontrado" });
 
-        return Ok(plano);
+            plano.Ativo = !plano.Ativo;
+            plano.DataAtualizacao = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = $"Plano {(plano.Ativo ? "ativado" : "desativado")} com sucesso", ativo = plano.Ativo });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PLANOS] Erro: {ex.Message}");
+            return StatusCode(500, new { message = "Erro ao atualizar status do plano" });
+        }
     }
+}
+
+public class PlanoResponse
+{
+    public int Id { get; set; }
+    public string Nome { get; set; } = string.Empty;
+    public string Descricao { get; set; } = string.Empty;
+    public decimal Preco { get; set; }
+    public decimal? PrecoPromocional { get; set; }
+    public int DuracaoDias { get; set; }
+    public bool Destaque { get; set; }
+    public bool Ativo { get; set; }
+    public List<string> Recursos { get; set; } = new();
 }

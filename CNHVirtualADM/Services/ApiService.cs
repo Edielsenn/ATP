@@ -68,4 +68,19 @@ public class ApiService
             return false;
         }
     }
+
+    public async Task<TResponse?> PutAsync<TRequest, TResponse>(string endpoint, TRequest? data)
+    {
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync(endpoint, data);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<TResponse>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro na requisição PUT {endpoint}: {ex.Message}");
+            return default;
+        }
+    }
 }

@@ -1,113 +1,59 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 namespace CNHVirtualADM.Services;
 
 public class AuthStateProvider : AuthenticationStateProvider
 {
-    private readonly ProtectedSessionStorage _sessionStorage;
     private readonly HttpClient _httpClient;
-    private const string TokenKey = "authToken";
+    private ClaimsPrincipal _currentUser = new(new ClaimsIdentity());
 
-    public AuthStateProvider(ProtectedSessionStorage sessionStorage, HttpClient httpClient)
+    public AuthStateProvider(HttpClient httpClient)
     {
-        _sessionStorage = sessionStorage;
         _httpClient = httpClient;
     }
 
-    public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+    public override Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        try
-        {
-            Console.WriteLine("[AUTH] Getting authentication state...");
-            var token = await GetTokenAsync();
-
-            if (string.IsNullOrEmpty(token))
-            {
-                Console.WriteLine("[AUTH] No token found - user not authenticated");
-                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
-            }
-
-            Console.WriteLine($"[AUTH] Token found, length: {token.Length}");
-
-            var claims = ParseClaimsFromJwt(token);
-            var identity = new ClaimsIdentity(claims, "jwt");
-            var user = new ClaimsPrincipal(identity);
-
-            Console.WriteLine($"[AUTH] User authenticated: {user.Identity?.Name}");
-
-            // Configurar token no HttpClient
-            _httpClient.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-            return new AuthenticationState(user);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[AUTH] Error getting auth state: {ex.Message}");
-            Console.WriteLine($"[AUTH] Stack trace: {ex.StackTrace}");
-            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
-        }
+        return Task.FromResult(new AuthenticationState(_currentUser));
     }
 
-    public async Task<string?> GetTokenAsync()
+    public Task LoginAsync(string token)
     {
-        try
-        {
-            var result = await _sessionStorage.GetAsync<string>(TokenKey);
-            return result.Success ? result.Value : null;
-        }
-        catch
-        {
-            return null;
-        }
+        Console.WriteLine($"[AUTH] LoginAsync chamado com token de {token.Length} chars");
+
+        var claims = ParseClaimsFromJwt(token);
+        var identity = new ClaimsIdentity(claims, "jwt");
+        _currentUser = new ClaimsPrincipal(identity);
+
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        Console.WriteLine($"[AUTH] Usuário autenticado: {_currentUser.Identity?.Name}");
+        NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_currentUser)));
+
+        return Task.CompletedTask;
     }
 
-    public async Task SetTokenAsync(string token)
+    public Task LogoutAsync()
     {
-        await _sessionStorage.SetAsync(TokenKey, token);
-        NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
-    }
-
-    public async Task RemoveTokenAsync()
-    {
-        await _sessionStorage.DeleteAsync(TokenKey);
+        Console.WriteLine("[AUTH] LogoutAsync chamado");
         _httpClient.DefaultRequestHeaders.Authorization = null;
-        NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+        _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
+        NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_currentUser)));
+        return Task.CompletedTask;
     }
 
     private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
     {
         var claims = new List<Claim>();
         var payload = jwt.Split('.')[1];
-
         var jsonBytes = ParseBase64WithoutPadding(payload);
         var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
 
         if (keyValuePairs != null)
         {
-            keyValuePairs.TryGetValue(ClaimTypes.Role, out object? roles);
-
-            if (roles != null)
-            {
-                if (roles.ToString()!.Trim().StartsWith("["))
-                {
-                    var parsedRoles = JsonSerializer.Deserialize<string[]>(roles.ToString()!);
-                    foreach (var parsedRole in parsedRoles!)
-                    {
-                        claims.Add(new Claim(ClaimTypes.Role, parsedRole));
-                    }
-                }
-                else
-                {
-                    claims.Add(new Claim(ClaimTypes.Role, roles.ToString()!));
-                }
-
-                keyValuePairs.Remove(ClaimTypes.Role);
-            }
-
             claims.AddRange(keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString()!)));
         }
 
