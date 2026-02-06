@@ -10,6 +10,9 @@
             <h1>Planos</h1>
             <p>Gerenciamento de planos e preços</p>
         </div>
+        <button @onclick="OpenNovoPlanoModal" class="btn btn-primary btn-novo">
+            ➕ Novo Plano
+        </button>
     </div>
 
     @if (isLoading)
@@ -82,6 +85,86 @@
             <p>Não há planos cadastrados no sistema ainda.</p>
         </div>
     }
+
+    @if (showModal)
+    {
+        <div class="modal-overlay" @onclick="CloseModal">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>@(isEditMode ? "Editar Plano" : "Novo Plano")</h2>
+                    <button @onclick="CloseModal" class="btn-close">✕</button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nome do Plano *</label>
+                        <input @bind="planoForm.Nome" type="text" class="form-control" placeholder="Ex: Plano Premium" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <textarea @bind="planoForm.Descricao" class="form-control" rows="3" placeholder="Descrição do plano"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Preço (R$) *</label>
+                            <input @bind="planoForm.Preco" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Preço Promocional (R$)</label>
+                            <input @bind="planoForm.PrecoPromocional" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Duração (dias) *</label>
+                        <input @bind="planoForm.DuracaoDias" type="number" class="form-control" placeholder="30" />
+                    </div>
+
+                    <div class="form-checks">
+                        <label class="checkbox-label">
+                            <input type="checkbox" @bind="planoForm.Destaque" />
+                            <span>Plano em Destaque</span>
+                        </label>
+
+                        <label class="checkbox-label">
+                            <input type="checkbox" @bind="planoForm.Ativo" />
+                            <span>Plano Ativo</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ordem de Exibição</label>
+                        <input @bind="planoForm.Ordem" type="number" class="form-control" placeholder="0" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Recursos do Plano</label>
+                        <div class="recursos-list">
+                            @for (int i = 0; i < planoForm.Recursos.Count; i++)
+                            {
+                                var index = i;
+                                <div class="recurso-item">
+                                    <input @bind="planoForm.Recursos[index].Descricao" type="text" class="form-control" placeholder="Descrição do recurso" />
+                                    <button @onclick="() => RemoverRecurso(index)" class="btn btn-danger btn-sm">✕</button>
+                                </div>
+                            }
+                        </div>
+                        <button @onclick="AdicionarRecurso" class="btn btn-secondary btn-sm mt-2">➕ Adicionar Recurso</button>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button @onclick="CloseModal" class="btn btn-secondary">Cancelar</button>
+                    <button @onclick="SalvarPlano" class="btn btn-primary" disabled="@isSaving">
+                        @(isSaving ? "Salvando..." : "Salvar")
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 <style>
@@ -91,6 +174,9 @@
 
     .page-header {
         margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .page-header h1 {
@@ -102,6 +188,11 @@
     .page-header p {
         margin: 0;
         color: #666;
+    }
+
+    .btn-novo {
+        padding: 12px 24px;
+        white-space: nowrap;
     }
 
     .planos-grid {
@@ -316,11 +407,177 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        max-width: 600px;
+        width: 100%;
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-header {
+        padding: 24px;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 24px;
+        color: #333;
+    }
+
+    .btn-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #999;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.3s;
+    }
+
+    .btn-close:hover {
+        background: #f5f5f5;
+        color: #333;
+    }
+
+    .modal-body {
+        padding: 24px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid #e9ecef;
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0081f2;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .form-checks {
+        display: flex;
+        gap: 24px;
+        margin-bottom: 20px;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .recursos-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .recurso-item {
+        display: flex;
+        gap: 8px;
+    }
+
+    .recurso-item .form-control {
+        flex: 1;
+    }
+
+    .btn-sm {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .mt-2 {
+        margin-top: 8px;
+    }
 </style>
 
 @code {
     private List<PlanoDto> planos = new();
     private bool isLoading = true;
+    private bool showModal = false;
+    private bool isEditMode = false;
+    private bool isSaving = false;
+    private PlanoFormDto planoForm = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -332,25 +589,16 @@
         try
         {
             isLoading = true;
+            Console.WriteLine("[PLANOS] Carregando planos da API...");
 
-            // Tentar carregar da API real
-            var result = await ApiService.GetAsync<List<PlanoDto>>("/api/planos");
-            if (result != null && result.Any())
-            {
-                planos = result;
-            }
-            else
-            {
-                // Fallback para mock data
-                await Task.Delay(500);
-                planos = GetMockPlanos();
-            }
+            planos = await ApiService.GetAsync<List<PlanoDto>>("/api/planos") ?? new List<PlanoDto>();
+
+            Console.WriteLine($"[PLANOS] {planos.Count} planos carregados");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Erro ao carregar planos: {ex.Message}");
-            // Em caso de erro, usar mock data
-            planos = GetMockPlanos();
+            Console.WriteLine($"[PLANOS] Erro ao carregar: {ex.Message}");
+            planos = new List<PlanoDto>();
         }
         finally
         {
@@ -358,76 +606,147 @@
         }
     }
 
-    private void EditPlano(int id)
+    private void OpenNovoPlanoModal()
     {
-        // TODO: Implementar modal de edição
-        Console.WriteLine($"Editar plano {id}");
+        planoForm = new PlanoFormDto
+        {
+            Ativo = true,
+            Destaque = false,
+            Ordem = 0,
+            Recursos = new List<RecursoDto>()
+        };
+        isEditMode = false;
+        showModal = true;
+    }
+
+    private async Task EditPlano(int id)
+    {
+        try
+        {
+            Console.WriteLine($"[PLANOS] Carregando plano {id} para edição...");
+
+            var plano = planos.FirstOrDefault(p => p.Id == id);
+            if (plano == null) return;
+
+            planoForm = new PlanoFormDto
+            {
+                Id = plano.Id,
+                Nome = plano.Nome,
+                Descricao = plano.Descricao,
+                Preco = plano.Preco,
+                PrecoPromocional = plano.PrecoPromocional,
+                DuracaoDias = plano.DuracaoDias,
+                Destaque = plano.Destaque,
+                Ativo = plano.Ativo,
+                Ordem = 0,
+                Recursos = plano.Recursos.Select((r, index) => new RecursoDto
+                {
+                    Descricao = r,
+                    Incluido = true,
+                    Ordem = index
+                }).ToList()
+            };
+
+            isEditMode = true;
+            showModal = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PLANOS] Erro ao carregar plano: {ex.Message}");
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        planoForm = new();
+    }
+
+    private void AdicionarRecurso()
+    {
+        planoForm.Recursos.Add(new RecursoDto { Descricao = "", Incluido = true, Ordem = planoForm.Recursos.Count });
+    }
+
+    private void RemoverRecurso(int index)
+    {
+        planoForm.Recursos.RemoveAt(index);
+    }
+
+    private async Task SalvarPlano()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(planoForm.Nome) || planoForm.Preco <= 0 || planoForm.DuracaoDias <= 0)
+            {
+                Console.WriteLine("[PLANOS] Validação falhou - campos obrigatórios não preenchidos");
+                return;
+            }
+
+            isSaving = true;
+
+            if (isEditMode)
+            {
+                Console.WriteLine($"[PLANOS] Atualizando plano {planoForm.Id}...");
+                await ApiService.PutAsync<PlanoFormDto, object>($"/api/planos/{planoForm.Id}", planoForm);
+            }
+            else
+            {
+                Console.WriteLine("[PLANOS] Criando novo plano...");
+                await ApiService.PostAsync<PlanoFormDto, object>("/api/planos", planoForm);
+            }
+
+            Console.WriteLine("[PLANOS] Operação concluída, recarregando lista...");
+            await LoadPlanos();
+            CloseModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PLANOS] Erro ao salvar plano: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
 
     private async Task ToggleStatus(int id)
     {
-        // TODO: Implementar ativação/desativação via API
-        var plano = planos.FirstOrDefault(p => p.Id == id);
-        if (plano != null)
+        try
         {
-            plano.Ativo = !plano.Ativo;
-            StateHasChanged();
+            Console.WriteLine($"[PLANOS] Alternando status do plano {id}");
+
+            var response = await ApiService.PutAsync<object, object>($"/api/planos/{id}/toggle-status", null);
+
+            if (response != null)
+            {
+                Console.WriteLine("[PLANOS] Status alterado, recarregando lista...");
+                await LoadPlanos();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PLANOS] Erro ao alternar status: {ex.Message}");
         }
     }
 
-    private List<PlanoDto> GetMockPlanos()
+    public class PlanoFormDto
     {
-        return new List<PlanoDto>
-        {
-            new() {
-                Id = 1,
-                Nome = "Plano Básico",
-                Descricao = "Ideal para quem está começando",
-                Preco = 97.00m,
-                DuracaoDias = 30,
-                Destaque = false,
-                Ativo = true,
-                Recursos = new List<string> {
-                    "Acesso à plataforma por 30 dias",
-                    "Videoaulas completas",
-                    "Exercícios práticos",
-                    "Suporte via chat"
-                }
-            },
-            new() {
-                Id = 2,
-                Nome = "Plano Intermediário",
-                Descricao = "Mais recursos e tempo",
-                Preco = 197.00m,
-                DuracaoDias = 60,
-                Destaque = true,
-                Ativo = true,
-                Recursos = new List<string> {
-                    "Acesso à plataforma por 60 dias",
-                    "Videoaulas completas",
-                    "Exercícios práticos",
-                    "Simulados ilimitados",
-                    "Suporte prioritário"
-                }
-            },
-            new() {
-                Id = 3,
-                Nome = "Plano Premium",
-                Descricao = "Acesso completo e ilimitado",
-                Preco = 397.00m,
-                DuracaoDias = 90,
-                Destaque = false,
-                Ativo = true,
-                Recursos = new List<string> {
-                    "Acesso à plataforma por 90 dias",
-                    "Videoaulas completas",
-                    "Exercícios práticos",
-                    "Simulados ilimitados",
-                    "Mentoria individual",
-                    "Material em PDF",
-                    "Suporte VIP 24/7"
-                }
-            }
-        };
+        public int Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string? Descricao { get; set; }
+        public decimal Preco { get; set; }
+        public decimal? PrecoPromocional { get; set; }
+        public int DuracaoDias { get; set; }
+        public bool Destaque { get; set; }
+        public bool Ativo { get; set; }
+        public int Ordem { get; set; }
+        public List<RecursoDto> Recursos { get; set; } = new();
+    }
+
+    public class RecursoDto
+    {
+        public string Descricao { get; set; } = string.Empty;
+        public bool Incluido { get; set; } = true;
+        public int Ordem { get; set; }
     }
 }

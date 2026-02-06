@@ -18,6 +18,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<Pagamento> Pagamentos { get; set; }
     public DbSet<Assinatura> Assinaturas { get; set; }
     public DbSet<WebhookLog> WebhookLogs { get; set; }
+    public DbSet<WebhookSubscription> WebhookSubscriptions { get; set; }
+    public DbSet<Configuracao> Configuracoes { get; set; }
+    public DbSet<EmailTemplate> EmailTemplates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -109,5 +112,9 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Pagamento>()
             .HasIndex(p => p.AsaasPaymentId);
+
+        modelBuilder.Entity<Configuracao>()
+            .HasIndex(c => c.Chave)
+            .IsUnique();
     }
 }

@@ -1,5 +1,5 @@
+@page "/"
 @page "/login"
-@rendermode InteractiveServer
 @layout EmptyLayout
 @inject ApiService ApiService
 @inject AuthStateProvider AuthStateProvider
@@ -19,7 +19,7 @@
             </div>
         }
 
-        <EditForm Model="@loginRequest" OnValidSubmit="@HandleLogin">
+        <EditForm Model="@loginRequest" OnValidSubmit="@HandleLogin" FormName="LoginForm">
             <DataAnnotationsValidator />
 
             <div class="form-group">
@@ -163,12 +163,21 @@
 </style>
 
 @code {
-    private LoginRequest loginRequest = new();
+    [SupplyParameterFromForm]
+    private LoginRequest? loginRequest { get; set; }
+
     private string errorMessage = string.Empty;
     private bool isLoading = false;
 
+    protected override void OnInitialized()
+    {
+        loginRequest ??= new LoginRequest();
+    }
+
     private async Task HandleLogin()
     {
+        if (loginRequest == null) return;
+
         // Validação básica para evitar submits com campos vazios
         if (string.IsNullOrWhiteSpace(loginRequest.Email) || string.IsNullOrWhiteSpace(loginRequest.Senha))
         {
@@ -183,47 +192,31 @@
             isLoading = true;
             errorMessage = string.Empty;
 
-            Console.WriteLine($"[LOGIN FORM] Email: '{loginRequest.Email}' (length: {loginRequest.Email?.Length})");
-            Console.WriteLine($"[LOGIN FORM] Senha: '{loginRequest.Senha}' (length: {loginRequest.Senha?.Length})");
-
+            Console.WriteLine($"[LOGIN] Tentando login para: {loginRequest.Email}");
             var response = await ApiService.PostAsync<LoginRequest, LoginResponse>("/api/auth/login", loginRequest);
+            Console.WriteLine($"[LOGIN] Response: {(response == null ? "NULL" : "OK")}");
 
-            Console.WriteLine($"[LOGIN] Response received: {(response != null ? "OK" : "NULL")}");
+            if (response != null)
+            {
+                Console.WriteLine($"[LOGIN] Token: {(string.IsNullOrEmpty(response.Token) ? "VAZIO/NULL" : $"OK ({response.Token.Length} chars)")}");
+            }
 
             if (response != null && !string.IsNullOrEmpty(response.Token))
             {
-                Console.WriteLine($"[LOGIN] Token received, length: {response.Token.Length}");
-
-                try
-                {
-                    await AuthStateProvider.SetTokenAsync(response.Token);
-                    Console.WriteLine("[LOGIN] Token saved successfully");
-
-                    // Aguarda um momento para garantir que o estado de autenticação foi atualizado
-                    await Task.Delay(100);
-
-                    Console.WriteLine("[LOGIN] Navigating to dashboard...");
-                    // Não usar forceLoad para preservar o ProtectedSessionStorage
-                    Navigation.NavigateTo("/", forceLoad: false);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[LOGIN] Error: {ex.Message}");
-                    Console.WriteLine($"[LOGIN] Stack trace: {ex.StackTrace}");
-                    errorMessage = $"Erro ao fazer login: {ex.Message}";
-                }
+                Console.WriteLine("[LOGIN] Login bem-sucedido! Navegando para dashboard...");
+                Navigation.NavigateTo("/dashboard");
             }
             else
             {
-                Console.WriteLine("[LOGIN] Invalid response or empty token");
+                Console.WriteLine("[LOGIN] Response inválida ou token vazio");
                 errorMessage = "Email ou senha inválidos";
             }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[LOGIN] EXCEÇÃO: {ex.Message}");
+            Console.WriteLine($"[LOGIN] Stack: {ex.StackTrace}");
             errorMessage = "Erro ao fazer login. Verifique suas credenciais.";
-            Console.WriteLine($"Erro no login: {ex.Message}");
         }
         finally
         {

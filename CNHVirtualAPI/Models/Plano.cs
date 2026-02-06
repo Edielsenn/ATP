@@ -14,8 +14,8 @@ public class Plano
     public bool Ativo { get; set; } = true;
     public bool Destaque { get; set; } = false;
     public int Ordem { get; set; } = 0;
-    public DateTime DataCriacao { get; set; } = DateTime.Now;
-    public DateTime DataAtualizacao { get; set; } = DateTime.Now;
+    public DateTime? DataCriacao { get; set; }
+    public DateTime? DataAtualizacao { get; set; }
 
     // Navigation properties
     public ICollection<PlanoRecurso> Recursos { get; set; } = new List<PlanoRecurso>();

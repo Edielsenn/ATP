@@ -90,7 +90,7 @@
 
                 @* Formulário de Checkout *@
                 <div style="order: 1;">
-                    <CheckoutFormComponent PlanoId="@plano.Id" Plano="@plano" />
+                    <CheckoutFormComponent PlanoId="@plano.Id" Plano="@plano" @rendermode="InteractiveServer" />
                 </div>
             </div>
         }

@@ -1,5 +1,4 @@
-﻿@page "/"
-@rendermode InteractiveServer
+﻿@page "/dashboard"
 @inject ApiService ApiService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
@@ -397,46 +396,27 @@
         try
         {
             isLoading = true;
+            Console.WriteLine("[DASHBOARD] Carregando dados da API...");
 
-            // Por enquanto, vamos criar dados mock
-            // TODO: Criar endpoint /api/admin/dashboard na API
-            stats = await GetMockDashboardStats();
+            stats = await ApiService.GetAsync<DashboardStats>("/api/dashboard/stats");
+
+            if (stats != null)
+            {
+                Console.WriteLine($"[DASHBOARD] Dados carregados: {stats.TotalClientes} clientes, R$ {stats.ReceitaTotal:N2} total");
+            }
+            else
+            {
+                Console.WriteLine("[DASHBOARD] Nenhum dado retornado");
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Erro ao carregar dashboard: {ex.Message}");
+            Console.WriteLine($"[DASHBOARD] Erro ao carregar: {ex.Message}");
             stats = null;
         }
         finally
         {
             isLoading = false;
         }
-    }
-
-    private async Task<DashboardStats> GetMockDashboardStats()
-    {
-        // Simula delay de rede
-        await Task.Delay(500);
-
-        return new DashboardStats
-        {
-            TotalClientes = 42,
-            TotalPedidos = 127,
-            PagamentosPendentes = 8,
-            PagamentosConfirmados = 119,
-            ReceitaTotal = 23850.00m,
-            ReceitaMes = 8450.00m,
-            AssinaturasAtivas = 38,
-            VendasUltimos7Dias = new List<VendaDiaria>
-            {
-                new() { Data = DateTime.Now.AddDays(-6), Valor = 591.00m, Quantidade = 3 },
-                new() { Data = DateTime.Now.AddDays(-5), Valor = 788.00m, Quantidade = 4 },
-                new() { Data = DateTime.Now.AddDays(-4), Valor = 394.00m, Quantidade = 2 },
-                new() { Data = DateTime.Now.AddDays(-3), Valor = 985.00m, Quantidade = 5 },
-                new() { Data = DateTime.Now.AddDays(-2), Valor = 197.00m, Quantidade = 1 },
-                new() { Data = DateTime.Now.AddDays(-1), Valor = 1182.00m, Quantidade = 6 },
-                new() { Data = DateTime.Now, Valor = 591.00m, Quantidade = 3 }
-            }
-        };
     }
 }
